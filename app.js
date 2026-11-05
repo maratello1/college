@@ -1,10 +1,35 @@
 /**
- * LabDrop | 1РУП8 — Клиентская логика веб-сервиса сдачи практических работ
+ * LabDrop | 1РУП8 — Клиентская логика премиального сервиса LabDrop
+ * Архитектура: Strix SecOps XSS-safe DOM, Glassmorphism Animations, Live Monitor.
  * Разработчики: Савченков Артем и Алиев Марат (группа 1РУП8)
  */
 
 document.addEventListener('DOMContentLoaded', () => {
-  // DOM Элементы формы
+  // --- ТЕМА ОФОРМЛЕНИЯ (DARK OBSIDIAN / CRYSTAL FROST) ---
+  const themeToggleBtn = document.getElementById('themeToggleBtn');
+  const htmlRoot = document.documentElement;
+
+  function initTheme() {
+    const savedTheme = localStorage.getItem('labdrop_theme');
+    if (savedTheme) {
+      htmlRoot.setAttribute('data-theme', savedTheme);
+    } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
+      htmlRoot.setAttribute('data-theme', 'light');
+    } else {
+      htmlRoot.setAttribute('data-theme', 'dark');
+    }
+  }
+
+  themeToggleBtn.addEventListener('click', () => {
+    const currentTheme = htmlRoot.getAttribute('data-theme');
+    const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+    htmlRoot.setAttribute('data-theme', newTheme);
+    localStorage.setItem('labdrop_theme', newTheme);
+  });
+
+  initTheme();
+
+  // --- DOM ЭЛЕМЕНТЫ ФОРМЫ ---
   const submissionForm = document.getElementById('submissionForm');
   const formCard = document.getElementById('formCard');
   const studentSelect = document.getElementById('studentSelect');
@@ -23,32 +48,55 @@ document.addEventListener('DOMContentLoaded', () => {
   const submitBtn = document.getElementById('submitBtn');
   const btnSpinner = document.getElementById('btnSpinner');
   const btnText = document.getElementById('btnText');
+  const uploadProgressWrap = document.getElementById('uploadProgressWrap');
+  const uploadProgressBar = document.getElementById('uploadProgressBar');
+  const progressPercentage = document.getElementById('progressPercentage');
 
-  // DOM Элементы экрана успеха
+  // --- DOM ЭЛЕМЕНТЫ ЭКРАНА ПОДТВЕРЖДЕНИЯ ---
   const successCard = document.getElementById('successCard');
   const successStudent = document.getElementById('successStudent');
   const successTask = document.getElementById('successTask');
   const successFilename = document.getElementById('successFilename');
   const successTime = document.getElementById('successTime');
   const successSize = document.getElementById('successSize');
+  const copyFilenameBtn = document.getElementById('copyFilenameBtn');
+  const copyFeedback = document.getElementById('copyFeedback');
   const resetFormBtn = document.getElementById('resetFormBtn');
 
-  // Журнал преподавателя
-  const toggleTeacherLog = document.getElementById('toggleTeacherLog');
-  const teacherPanel = document.querySelector('.teacher-panel');
-  const teacherLogContent = document.getElementById('teacherLogContent');
-  const logTableBody = document.getElementById('logTableBody');
+  // --- DOM ЭЛЕМЕНТЫ МОНИТОРА И ДАШБОРДА ---
+  const statTotalSubmissions = document.getElementById('statTotalSubmissions');
+  const statUniqueStudents = document.getElementById('statUniqueStudents');
+  const statPercent = document.getElementById('statPercent');
+  const groupProgressFill = document.getElementById('groupProgressFill');
+  const submissionsTableBody = document.getElementById('submissionsTableBody');
+  const logSearchInput = document.getElementById('logSearchInput');
+  const logTaskFilter = document.getElementById('logTaskFilter');
+  const refreshStatsBtn = document.getElementById('refreshStatsBtn');
 
   // Константы валидации
   const ALLOWED_EXTENSIONS = ['.docx', '.doc', '.pdf', '.py', '.zip', '.rar', '.txt'];
-  const MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024; // 50 МБ
+  const MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024; // 50 MB
 
-  // Текущее состояние
+  // Состояние
   let currentFile = null;
   let isSubmitting = false;
+  let cachedSubmissions = [];
 
   /**
-   * Форматирование байтов в человекочитаемый размер
+   * Strix Vector 4: Безопасное экранирование HTML от XSS
+   */
+  function escapeHtml(str) {
+    if (!str) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
+
+  /**
+   * Человекочитаемый размер файлов
    */
   function formatFileSize(bytes) {
     if (bytes === 0) return '0 КБ';
@@ -59,7 +107,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   /**
-   * Получение расширения файла
+   * Получение расширения
    */
   function getFileExtension(filename) {
     const lastDot = filename.lastIndexOf('.');
@@ -67,32 +115,30 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   /**
-   * Отображение ошибки валидации
+   * Вывод ошибки валидации
    */
   function showError(message) {
     validationErrorText.textContent = message;
     validationError.style.display = 'flex';
-    dropzone.classList.add('has-error');
+    dropzone.classList.add('has-validation-error');
   }
 
   /**
-   * Скрытие ошибки валидации
+   * Скрытие ошибки
    */
   function hideError() {
     validationError.style.display = 'none';
     validationErrorText.textContent = '';
-    dropzone.classList.remove('has-error');
+    dropzone.classList.remove('has-validation-error');
   }
 
   /**
-   * Валидация выбранного файла
+   * Валидация прикрепленного файла
    */
   function validateFile(file) {
     hideError();
 
-    if (!file) {
-      return false;
-    }
+    if (!file) return false;
 
     // 1. Проверка на пустой файл (0 байт)
     if (file.size === 0) {
@@ -100,19 +146,19 @@ document.addEventListener('DOMContentLoaded', () => {
       return false;
     }
 
-    // 2. Проверка максимального размера (50 МБ)
+    // 2. Проверка размера (до 50 МБ)
     if (file.size > MAX_FILE_SIZE_BYTES) {
       showError('Размер файла превышает допустимые 50 МБ');
       return false;
     }
 
-    // 3. Проверка формата файла
+    // 3. Проверка допустимых форматов
     const ext = getFileExtension(file.name);
     if (!ext || !ALLOWED_EXTENSIONS.includes(ext)) {
-      if (ext === '.exe' || ext === '.bat' || ext === '.cmd' || ext === '.sh') {
-        showError(`Файлы типа "${ext}" запрещены из соображений безопасности. Разрешены: .docx, .doc, .pdf, .py, .zip, .rar, .txt`);
+      if (['.exe', '.bat', '.cmd', '.sh', '.vbs', '.msi', '.scr', '.ps1'].includes(ext)) {
+        showError(`Файлы типа "${ext}" строго запрещены политикой безопасности колледжа. Разрешены: .docx, .doc, .pdf, .py, .zip, .rar, .txt`);
       } else {
-        showError(`Недопустимый формат файла "${ext || 'без расширения'}". Разрешены только: .docx, .doc, .pdf, .py, .zip, .rar, .txt`);
+        showError(`Формат "${ext || 'без расширения'}" недопустим. Разрешены: .docx, .doc, .pdf, .py, .zip, .rar, .txt`);
       }
       return false;
     }
@@ -121,9 +167,9 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   /**
-   * Проверка готовности всей формы к отправке
+   * Обновление состояния кнопки сдачи
    */
-  function updateSubmitButtonState() {
+  function updateSubmitState() {
     const hasStudent = studentSelect.value.trim() !== '';
     const hasTask = taskSelect.value.trim() !== '';
     const hasValidFile = currentFile !== null;
@@ -136,20 +182,19 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   /**
-   * Применение выбранного файла
+   * Обработка выбора файла
    */
   function handleFileSelected(file) {
     if (!file) return;
 
     if (validateFile(file)) {
       currentFile = file;
-      const ext = getFileExtension(file.name).replace('.', '').toUpperCase();
+      const rawExt = getFileExtension(file.name).replace('.', '').toUpperCase();
 
-      fileTypeBadge.textContent = ext || 'FILE';
+      fileTypeBadge.textContent = rawExt || 'FILE';
       selectedFileName.textContent = file.name;
       selectedFileSize.textContent = formatFileSize(file.size);
 
-      // Визуальный переход в состояние "файл прикреплен"
       dropzoneEmpty.style.display = 'none';
       selectedFileCard.style.display = 'flex';
       hideError();
@@ -157,23 +202,21 @@ document.addEventListener('DOMContentLoaded', () => {
       clearSelectedFile();
     }
 
-    updateSubmitButtonState();
+    updateSubmitState();
   }
 
   /**
-   * Сброс прикрепленного файла
+   * Сброс выбранного файла
    */
   function clearSelectedFile() {
     currentFile = null;
     fileInput.value = '';
     selectedFileCard.style.display = 'none';
     dropzoneEmpty.style.display = 'flex';
-    updateSubmitButtonState();
+    updateSubmitState();
   }
 
-  // --- Слушатели событий формы ---
-
-  // Вызов окна выбора файла
+  // --- СЛУШАТЕЛИ DRAG & DROP ---
   browseBtn.addEventListener('click', (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -181,8 +224,14 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   dropzone.addEventListener('click', (e) => {
-    // Если клик не по кнопке удаления файла и файл еще не выбран
     if (!currentFile && !e.target.closest('#removeFileBtn')) {
+      fileInput.click();
+    }
+  });
+
+  dropzone.addEventListener('keydown', (e) => {
+    if ((e.key === 'Enter' || e.key === ' ') && !currentFile) {
+      e.preventDefault();
       fileInput.click();
     }
   });
@@ -199,27 +248,26 @@ document.addEventListener('DOMContentLoaded', () => {
     hideError();
   });
 
-  // Drag and Drop события
-  ['dragenter', 'dragover'].forEach(eventName => {
-    dropzone.addEventListener(eventName, (e) => {
+  ['dragenter', 'dragover'].forEach(name => {
+    dropzone.addEventListener(name, (e) => {
       e.preventDefault();
       e.stopPropagation();
-      dropzone.classList.add('drag-over');
+      dropzone.classList.add('drag-active');
     });
   });
 
-  ['dragleave', 'dragend'].forEach(eventName => {
-    dropzone.addEventListener(eventName, (e) => {
+  ['dragleave', 'dragend'].forEach(name => {
+    dropzone.addEventListener(name, (e) => {
       e.preventDefault();
       e.stopPropagation();
-      dropzone.classList.remove('drag-over');
+      dropzone.classList.remove('drag-active');
     });
   });
 
   dropzone.addEventListener('drop', (e) => {
     e.preventDefault();
     e.stopPropagation();
-    dropzone.classList.remove('drag-over');
+    dropzone.classList.remove('drag-active');
 
     const dt = e.dataTransfer;
     if (dt && dt.files && dt.files.length > 0) {
@@ -227,46 +275,55 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Изменение селектов
-  studentSelect.addEventListener('change', () => {
-    updateSubmitButtonState();
-  });
+  studentSelect.addEventListener('change', updateSubmitState);
+  taskSelect.addEventListener('change', updateSubmitState);
 
-  taskSelect.addEventListener('change', () => {
-    updateSubmitButtonState();
-  });
-
-  // --- Отправка формы на сервер ---
+  // --- ОТПРАВКА РАБОТЫ НА СЕРВЕР ---
   submissionForm.addEventListener('submit', async (e) => {
     e.preventDefault();
 
     if (!currentFile || !studentSelect.value || !taskSelect.value || isSubmitting) {
-      updateSubmitButtonState();
+      updateSubmitState();
       return;
     }
 
-    // Повторная валидация перед сетевым запросом
     if (!validateFile(currentFile)) {
       return;
     }
 
-    // Перевод кнопки в состояние отправки с блокировкой
     isSubmitting = true;
     submitBtn.setAttribute('disabled', 'true');
     btnSpinner.style.display = 'inline-block';
     btnText.textContent = 'Отправка...';
     hideError();
 
+    // Прогресс-бар
+    uploadProgressWrap.style.display = 'flex';
+    uploadProgressBar.style.width = '20%';
+    progressPercentage.textContent = '20%';
+
     const formData = new FormData();
     formData.append('student', studentSelect.value);
     formData.append('task', taskSelect.value);
     formData.append('file', currentFile, currentFile.name);
 
+    // Добавляем honeypot (должен быть пустым)
+    const hp = document.getElementById('honeypotField');
+    if (hp && hp.value) {
+      formData.append('middle_name_check', hp.value);
+    }
+
     try {
+      uploadProgressBar.style.width = '65%';
+      progressPercentage.textContent = '65%';
+
       const response = await fetch('/upload', {
         method: 'POST',
         body: formData
       });
+
+      uploadProgressBar.style.width = '100%';
+      progressPercentage.textContent = '100%';
 
       const result = await response.json();
 
@@ -282,78 +339,131 @@ document.addEventListener('DOMContentLoaded', () => {
         formCard.style.display = 'none';
         successCard.style.display = 'flex';
 
-        // Обновление журнала преподавателя в фоне, если открыт
-        if (teacherLogContent.style.display !== 'none') {
-          loadTeacherLog();
-        }
+        // Обновление дашборда и таблицы
+        loadDashboardData();
       } else {
-        // Ошибка с сервера
         showError(result.message || 'Ошибка при сохранении работы на сервере');
       }
     } catch (err) {
       console.error('Ошибка отправки:', err);
-      showError('Не удалось связаться с сервером. Проверьте соединение с локальной сетью кабинета.');
+      showError('Не удалось связаться с сервером кабинета. Проверьте подключение к локальной сети.');
     } finally {
       isSubmitting = false;
       btnSpinner.style.display = 'none';
       btnText.textContent = 'Сдать работу';
-      updateSubmitButtonState();
+      uploadProgressWrap.style.display = 'none';
+      uploadProgressBar.style.width = '0%';
+      updateSubmitState();
     }
   });
 
-  // --- Возврат к форме ("Сдать еще одну работу") ---
-  resetFormBtn.addEventListener('click', () => {
-    // Очистка полей
-    clearSelectedFile();
-    taskSelect.value = '';
-    // Студента можно оставить для удобства или сбросить
-    hideError();
+  // --- КОПИРОВАНИЕ ИМЕНИ ФАЙЛА В БУФЕР ---
+  copyFilenameBtn.addEventListener('click', async () => {
+    const textToCopy = successFilename.textContent.trim();
+    if (!textToCopy || textToCopy === '—') return;
 
-    // Переключение обратно на форму
-    successCard.style.display = 'none';
-    formCard.style.display = 'block';
-    updateSubmitButtonState();
+    try {
+      await navigator.clipboard.writeText(textToCopy);
+      copyFeedback.textContent = 'Скопировано!';
+      setTimeout(() => {
+        copyFeedback.textContent = 'Копировать';
+      }, 2000);
+    } catch (e) {
+      copyFeedback.textContent = 'Выделите текст';
+    }
   });
 
-  // --- Разворачивание журнала преподавателя ---
-  async function loadTeacherLog() {
-    try {
-      const resp = await fetch('/api/submissions');
-      if (!resp.ok) return;
-      const data = await resp.json();
+  // --- ВОЗВРАТ К ФОРМЕ ("Сдать еще одну работу") ---
+  resetFormBtn.addEventListener('click', () => {
+    clearSelectedFile();
+    taskSelect.value = '';
+    hideError();
 
-      if (data.submissions && data.submissions.length > 0) {
-        logTableBody.innerHTML = data.submissions.map(item => `
-          <tr>
-            <td><strong>${item.datetime}</strong></td>
-            <td>${item.student}</td>
-            <td>${item.task}</td>
-            <td><code class="file-tag">${item.filename}</code></td>
-            <td>${item.size_kb}</td>
-          </tr>
-        `).join('');
-      } else {
-        logTableBody.innerHTML = '<tr><td colspan="5" class="empty-log">Пока никто не сдал работы на этой паре. Будьте первым!</td></tr>';
+    successCard.style.display = 'none';
+    formCard.style.display = 'block';
+    updateSubmitState();
+  });
+
+  // --- МОНИТОР СТАРОСТЫ И ПРЕПОДАВАТЕЛЯ (DASHBOARD) ---
+  async function loadDashboardData() {
+    try {
+      // 1. Статистика группы
+      const statsResp = await fetch('/api/stats');
+      if (statsResp.ok) {
+        const stats = await statsResp.json();
+        if (stats.status === 'ok') {
+          statTotalSubmissions.textContent = stats.total_submissions;
+          statUniqueStudents.textContent = `${stats.unique_students} / ${stats.group_size}`;
+          statPercent.textContent = `${stats.percent}%`;
+          groupProgressFill.style.width = `${Math.min(stats.percent, 100)}%`;
+        }
+      }
+
+      // 2. Список сдач
+      const subsResp = await fetch('/api/submissions');
+      if (subsResp.ok) {
+        const data = await subsResp.json();
+        if (data.status === 'ok') {
+          cachedSubmissions = data.submissions || [];
+          renderSubmissionsTable();
+        }
       }
     } catch (e) {
-      logTableBody.innerHTML = '<tr><td colspan="5" class="empty-log">Не удалось загрузить данные журнала</td></tr>';
+      console.warn('Дашборд временно недоступен:', e);
     }
   }
 
-  toggleTeacherLog.addEventListener('click', (e) => {
-    // Если клик по кнопке скачивания CSV, не сворачиваем/разворачиваем
-    if (e.target.closest('.btn-csv-download')) {
+  function renderSubmissionsTable() {
+    const query = logSearchInput.value.trim().toLowerCase();
+    const taskFilter = logTaskFilter.value;
+
+    const filtered = cachedSubmissions.filter(item => {
+      const matchQuery = !query ||
+        item.student.toLowerCase().includes(query) ||
+        item.filename.toLowerCase().includes(query) ||
+        item.task.toLowerCase().includes(query);
+
+      let matchTask = true;
+      if (taskFilter !== 'all') {
+        matchTask = item.task.includes(`№${taskFilter}`);
+      }
+
+      return matchQuery && matchTask;
+    });
+
+    if (filtered.length === 0) {
+      submissionsTableBody.innerHTML = `
+        <tr>
+          <td colspan="5" class="table-empty-row">
+            ${cachedSubmissions.length === 0 ? 'Работ пока не сдано. Сдайте первую работу прямо сейчас!' : 'Ничего не найдено по заданным фильтрам.'}
+          </td>
+        </tr>
+      `;
       return;
     }
 
-    const isOpen = teacherLogContent.style.display !== 'none';
-    if (isOpen) {
-      teacherLogContent.style.display = 'none';
-      teacherPanel.classList.remove('open');
-    } else {
-      teacherLogContent.style.display = 'block';
-      teacherPanel.classList.add('open');
-      loadTeacherLog();
-    }
+    submissionsTableBody.innerHTML = filtered.map(item => `
+      <tr>
+        <td><strong>${escapeHtml(item.datetime)}</strong></td>
+        <td>${escapeHtml(item.student)}</td>
+        <td>${escapeHtml(item.task)}</td>
+        <td><code class="table-filename-tag">${escapeHtml(item.filename)}</code></td>
+        <td>${escapeHtml(item.size_kb)}</td>
+      </tr>
+    `).join('');
+  }
+
+  logSearchInput.addEventListener('input', renderSubmissionsTable);
+  logTaskFilter.addEventListener('change', renderSubmissionsTable);
+
+  refreshStatsBtn.addEventListener('click', () => {
+    refreshStatsBtn.style.opacity = '0.5';
+    loadDashboardData().finally(() => {
+      setTimeout(() => { refreshStatsBtn.style.opacity = '1'; }, 300);
+    });
   });
+
+  // Первоначальная загрузка дашборда и автообновление каждые 20 секунд
+  loadDashboardData();
+  setInterval(loadDashboardData, 20000);
 });
