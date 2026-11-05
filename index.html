@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LabDrop | 1РУП8 — Сдача практических работ</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%232563eb'><path d='M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z'/></svg>">
+</head>
+<body>
+  <div class="background-decorations">
+    <div class="glow glow-1"></div>
+    <div class="glow glow-2"></div>
+  </div>
+
+  <div class="app-container">
+    <!-- Шапка сервиса -->
+    <header class="header-card">
+      <div class="header-top">
+        <div class="brand">
+          <div class="brand-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="17 8 12 3 7 8"/>
+              <line x1="12" y1="3" x2="12" y2="15"/>
+            </svg>
+          </div>
+          <div>
+            <h1 class="brand-title">LabDrop <span class="badge-group">1РУП8</span></h1>
+            <p class="brand-slogan">Сдача практических работ без ввода паролей</p>
+          </div>
+        </div>
+
+        <div class="header-status">
+          <span class="status-indicator">
+            <span class="status-dot"></span>
+            Сервер активен
+          </span>
+          <span class="cabinet-badge">Кабинет IT • Компьютерный класс</span>
+        </div>
+      </div>
+
+      <div class="authors-bar">
+        <span>Проект подготовили студенты группы 1РУП8: <strong>Савченков Артем</strong> и <strong>Алиев Марат</strong></span>
+      </div>
+    </header>
+
+    <!-- Блок текущего задания к уроку -->
+    <section class="task-banner-card">
+      <div class="task-banner-info">
+        <div class="task-icon-circle">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+            <line x1="16" y1="13" x2="8" y2="13"/>
+            <line x1="16" y1="17" x2="8" y2="17"/>
+            <polyline points="10 9 9 9 8 9"/>
+          </svg>
+        </div>
+        <div>
+          <span class="task-tag">Текущее задание</span>
+          <h2 class="task-title">Практическая работа к сегодняшнему занятию</h2>
+          <p class="task-desc">Скачайте методические указания и задание в 1 клик без входа в аккаунты LMS или Google</p>
+        </div>
+      </div>
+      <a href="/tasks/zadanie_current.pdf" download="zadanie_current.pdf" class="btn btn-download" id="downloadTaskBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="7 10 12 15 17 10"/>
+          <line x1="12" y1="15" x2="12" y2="3"/>
+        </svg>
+        <span>Скачать задание к уроку (.pdf)</span>
+      </a>
+    </section>
+
+    <!-- Основная карточка формы -->
+    <main class="main-card" id="formCard">
+      <div class="card-header">
+        <h2 class="card-title">Форма сдачи выполненной работы</h2>
+        <p class="card-subtitle">Заполните поля ниже и прикрепите файл. Файл сохранится по стандарту колледжа автоматически.</p>
+      </div>
+
+      <form id="submissionForm" novalidate>
+        <!-- Сетка селектов -->
+        <div class="form-grid">
+          <!-- Выбор студента -->
+          <div class="form-group">
+            <label for="studentSelect" class="form-label">
+              <span>Студент группы 1РУП8</span>
+              <span class="required-star">*</span>
+            </label>
+            <div class="select-wrapper">
+              <select id="studentSelect" name="student" required>
+                <option value="" disabled selected>— Выберите свою фамилию —</option>
+                <option value="Алиев Марат">Алиев Марат</option>
+                <option value="Борисов Дмитрий">Борисов Дмитрий</option>
+                <option value="Васильев Иван">Васильев Иван</option>
+                <option value="Григорьев Максим">Григорьев Максим</option>
+                <option value="Дмитриев Кирилл">Дмитриев Кирилл</option>
+                <option value="Ермаков Алексей">Ермаков Алексей</option>
+                <option value="Жуков Роман">Жуков Роман</option>
+                <option value="Иванов Сергей">Иванов Сергей</option>
+                <option value="Ковалев Даниил">Ковалев Даниил</option>
+                <option value="Морозов Никита">Морозов Никита</option>
+                <option value="Новиков Денис">Новиков Денис</option>
+                <option value="Петров Александр">Петров Александр</option>
+                <option value="Савченков Артем">Савченков Артем</option>
+                <option value="Смирнов Владислав">Смирнов Владислав</option>
+                <option value="Федоров Михаил">Федоров Михаил</option>
+              </select>
+              <div class="select-chevron">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="6 9 12 15 18 9"/>
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          <!-- Выбор номера практической работы -->
+          <div class="form-group">
+            <label for="taskSelect" class="form-label">
+              <span>Номер практической работы</span>
+              <span class="required-star">*</span>
+            </label>
+            <div class="select-wrapper">
+              <select id="taskSelect" name="task" required>
+                <option value="" disabled selected>— Выберите номер работы —</option>
+                <option value="1">Практическая работа №1</option>
+                <option value="2">Практическая работа №2</option>
+                <option value="3">Практическая работа №3</option>
+                <option value="4">Практическая работа №4</option>
+                <option value="5">Практическая работа №5</option>
+                <option value="6">Практическая работа №6</option>
+                <option value="7">Практическая работа №7</option>
+                <option value="8">Практическая работа №8</option>
+                <option value="9">Практическая работа №9</option>
+                <option value="10">Практическая работа №10</option>
+              </select>
+              <div class="select-chevron">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="6 9 12 15 18 9"/>
+                </svg>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Зона Drag and Drop -->
+        <div class="form-group">
+          <label class="form-label">
+            <span>Файл с выполненным заданием</span>
+            <span class="required-star">*</span>
+          </label>
+
+          <div class="dropzone" id="dropzone">
+            <input type="file" id="fileInput" name="file" class="file-input-hidden" accept=".docx,.doc,.pdf,.py,.zip,.rar,.txt">
+            
+            <div class="dropzone-content" id="dropzoneEmpty">
+              <div class="dropzone-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"/>
+                  <path d="M12 12v9"/>
+                  <path d="m16 16-4-4-4 4"/>
+                </svg>
+              </div>
+              <div class="dropzone-text">
+                <p class="dropzone-title">Перетащите файл сюда или <button type="button" class="btn-browse" id="browseBtn">выберите на компьютере</button></p>
+                <p class="dropzone-hint">Разрешенные форматы: <strong>.docx, .doc, .pdf, .py, .zip, .rar, .txt</strong> (максимум до 50 МБ)</p>
+              </div>
+            </div>
+
+            <!-- Блок выбранного файла -->
+            <div class="selected-file-card" id="selectedFileCard" style="display: none;">
+              <div class="file-info-group">
+                <div class="file-type-badge" id="fileTypeBadge">FILE</div>
+                <div class="file-details">
+                  <div class="file-name" id="selectedFileName">example_report.docx</div>
+                  <div class="file-meta">
+                    <span id="selectedFileSize">0 КБ</span>
+                    <span class="file-status-valid">✓ Файл готов к отправке</span>
+                  </div>
+                </div>
+              </div>
+              <button type="button" class="btn-remove-file" id="removeFileBtn" title="Выбрать другой файл">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="18" y1="6" x2="6" y2="18"/>
+                  <line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- Блок вывода ошибки валидации -->
+          <div class="validation-error" id="validationError" style="display: none;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="12" y1="8" x2="12" y2="12"/>
+              <line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+            <span id="validationErrorText">Текст ошибки</span>
+          </div>
+        </div>
+
+        <!-- Кнопка отправки -->
+        <div class="form-actions">
+          <button type="submit" class="btn btn-submit" id="submitBtn" disabled>
+            <span class="btn-spinner" id="btnSpinner" style="display: none;"></span>
+            <span class="btn-text" id="btnText">Сдать работу</span>
+            <svg class="btn-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="5" y1="12" x2="19" y2="12"/>
+              <polyline points="12 5 19 12 12 19"/>
+            </svg>
+          </button>
+        </div>
+      </form>
+    </main>
+
+    <!-- Экран успешной сдачи (карточка подтверждения) -->
+    <div class="success-card" id="successCard" style="display: none;">
+      <div class="success-icon-wrap">
+        <div class="success-pulse"></div>
+        <svg class="success-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="20 6 9 17 4 12"/>
+        </svg>
+      </div>
+
+      <h2 class="success-title">Работа успешно принята!</h2>
+      <p class="success-subtitle">Файл сохранен на сервере кабинета и зарегистрирован в электронном журнале сдачи.</p>
+
+      <div class="success-details-list">
+        <div class="success-detail-row">
+          <span class="detail-label">Студент:</span>
+          <span class="detail-value" id="successStudent">—</span>
+        </div>
+        <div class="success-detail-row">
+          <span class="detail-label">Задание:</span>
+          <span class="detail-value" id="successTask">—</span>
+        </div>
+        <div class="success-detail-row">
+          <span class="detail-label">Сохранено как:</span>
+          <span class="detail-value file-tag" id="successFilename">—</span>
+        </div>
+        <div class="success-detail-row">
+          <span class="detail-label">Время сдачи:</span>
+          <span class="detail-value" id="successTime">—</span>
+        </div>
+        <div class="success-detail-row">
+          <span class="detail-label">Размер файла:</span>
+          <span class="detail-value" id="successSize">—</span>
+        </div>
+      </div>
+
+      <button type="button" class="btn btn-secondary" id="resetFormBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="1 4 1 10 7 10"/>
+          <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/>
+        </svg>
+        <span>Сдать еще одну работу</span>
+      </button>
+    </div>
+
+    <!-- Монитор для преподавателя (разворачиваемый журнал) -->
+    <section class="teacher-panel">
+      <div class="teacher-panel-header" id="toggleTeacherLog">
+        <div class="teacher-panel-title">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <path d="M14 2v6h6"/>
+            <line x1="16" y1="13" x2="8" y2="13"/>
+            <line x1="16" y1="17" x2="8" y2="17"/>
+          </svg>
+          <span>Журнал сдачи работ (для преподавателя)</span>
+        </div>
+        <div class="teacher-panel-actions">
+          <a href="/submissions_log.csv" download class="btn-csv-download" title="Скачать CSV в Excel">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="7 10 12 15 17 10"/>
+              <line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            <span>Экспорт в Excel (.csv)</span>
+          </a>
+          <span class="toggle-icon" id="toggleIcon">▼</span>
+        </div>
+      </div>
+
+      <div class="teacher-log-content" id="teacherLogContent" style="display: none;">
+        <div class="table-responsive">
+          <table class="log-table" id="logTable">
+            <thead>
+              <tr>
+                <th>Время</th>
+                <th>Студент</th>
+                <th>Работа</th>
+                <th>Имя сохраненного файла</th>
+                <th>Размер</th>
+              </tr>
+            </thead>
+            <tbody id="logTableBody">
+              <tr>
+                <td colspan="5" class="empty-log">Загрузка журнала...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- Подвал страницы -->
+    <footer class="footer">
+      <p>© 2026 LabDrop | 1РУП8. Разработано студентами: <strong>Савченков Артем</strong> и <strong>Алиев Марат</strong>.</p>
+      <p class="footer-sub">Система для компьютерных лабораторий колледжей. Сдача без учетных записей.</p>
+    </footer>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
