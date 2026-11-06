@@ -8,74 +8,74 @@
    ============================================================ */
 
 :root {
-  /* DARK THEME (Default) */
-  --bg-page: #08090c;
-  --bg-glow-1: rgba(16, 185, 129, 0.08);
-  --bg-glow-2: rgba(20, 184, 166, 0.06);
+  /* DARK THEME (Pure Minimalist Obsidian) */
+  --bg-page: #090a0f;
+  --bg-glow-1: rgba(255, 255, 255, 0.02);
+  --bg-glow-2: rgba(45, 212, 191, 0.03);
 
   --text-primary: #ffffff;
   --text-secondary: #94a3b8;
   --text-muted: #64748b;
 
-  --glass-card: rgba(255, 255, 255, 0.035);
-  --glass-card-hover: rgba(255, 255, 255, 0.055);
-  --glass-border: rgba(255, 255, 255, 0.08);
-  --glass-border-top: rgba(255, 255, 255, 0.16);
-  --glass-shadow: 0 20px 50px -10px rgba(0, 0, 0, 0.65);
-  --glass-specular: inset 0 1px 1px 0 rgba(255, 255, 255, 0.15);
+  --glass-card: rgba(15, 17, 23, 0.72);
+  --glass-card-hover: rgba(20, 23, 31, 0.85);
+  --glass-border: rgba(255, 255, 255, 0.07);
+  --glass-border-top: rgba(255, 255, 255, 0.12);
+  --glass-shadow: 0 16px 40px -12px rgba(0, 0, 0, 0.5);
+  --glass-specular: inset 0 1px 0 0 rgba(255, 255, 255, 0.08);
 
   --input-bg: rgba(255, 255, 255, 0.03);
-  --input-border: rgba(255, 255, 255, 0.09);
+  --input-border: rgba(255, 255, 255, 0.08);
   --input-text: #ffffff;
-  --input-focus: #14b8a6;
-  --input-dropdown-bg: #111318;
+  --input-focus: #2dd4bf;
+  --input-dropdown-bg: #0f1117;
 
   --dropzone-bg: rgba(255, 255, 255, 0.015);
-  --dropzone-border: rgba(255, 255, 255, 0.12);
-  --dropzone-hover-bg: rgba(20, 184, 166, 0.04);
+  --dropzone-border: rgba(255, 255, 255, 0.08);
+  --dropzone-hover-bg: rgba(255, 255, 255, 0.03);
   --dropzone-hover-border: rgba(45, 212, 191, 0.4);
 
-  --subtle-card: rgba(255, 255, 255, 0.025);
+  --subtle-card: rgba(255, 255, 255, 0.02);
   --subtle-border: rgba(255, 255, 255, 0.06);
 
-  --badge-bg: rgba(20, 184, 166, 0.1);
-  --badge-border: rgba(20, 184, 166, 0.25);
-  --badge-text: #5eead4;
+  --badge-bg: rgba(45, 212, 191, 0.08);
+  --badge-border: rgba(45, 212, 191, 0.2);
+  --badge-text: #2dd4bf;
 }
 
 html[data-theme="light"] {
-  /* LIGHT THEME (Clean, airy, perfectly legible, zero white-on-white bugs) */
-  --bg-page: #f8fafc;
-  --bg-glow-1: rgba(16, 185, 129, 0.06);
-  --bg-glow-2: rgba(14, 165, 233, 0.05);
+  /* LIGHT THEME (Minimalist Arctic White) */
+  --bg-page: #fafafa;
+  --bg-glow-1: rgba(0, 0, 0, 0.01);
+  --bg-glow-2: rgba(13, 148, 136, 0.02);
 
-  --text-primary: #0f172a;
-  --text-secondary: #475569;
-  --text-muted: #94a3b8;
+  --text-primary: #09090b;
+  --text-secondary: #52525b;
+  --text-muted: #a1a1aa;
 
-  --glass-card: rgba(255, 255, 255, 0.82);
-  --glass-card-hover: rgba(255, 255, 255, 0.95);
-  --glass-border: rgba(226, 232, 240, 0.85);
-  --glass-border-top: rgba(255, 255, 255, 1);
-  --glass-shadow: 0 20px 40px -15px rgba(15, 23, 42, 0.07);
-  --glass-specular: inset 0 1px 1px 0 rgba(255, 255, 255, 0.9);
+  --glass-card: rgba(255, 255, 255, 0.95);
+  --glass-card-hover: #ffffff;
+  --glass-border: rgba(0, 0, 0, 0.08);
+  --glass-border-top: rgba(0, 0, 0, 0.1);
+  --glass-shadow: 0 16px 36px -12px rgba(0, 0, 0, 0.06);
+  --glass-specular: inset 0 1px 0 0 rgba(255, 255, 255, 1);
 
   --input-bg: #ffffff;
-  --input-border: #cbd5e1;
-  --input-text: #0f172a;
-  --input-focus: #0d9488;
+  --input-border: #e4e4e7;
+  --input-text: #09090b;
+  --input-focus: #0f766e;
   --input-dropdown-bg: #ffffff;
 
-  --dropzone-bg: rgba(248, 250, 252, 0.7);
-  --dropzone-border: #cbd5e1;
-  --dropzone-hover-bg: rgba(20, 184, 166, 0.05);
+  --dropzone-bg: #fcfcfc;
+  --dropzone-border: #e4e4e7;
+  --dropzone-hover-bg: #f4f4f5;
   --dropzone-hover-border: #0d9488;
 
-  --subtle-card: #f1f5f9;
-  --subtle-border: #e2e8f0;
+  --subtle-card: #f4f4f5;
+  --subtle-border: #e4e4e7;
 
-  --badge-bg: rgba(13, 148, 136, 0.08);
-  --badge-border: rgba(13, 148, 136, 0.2);
+  --badge-bg: rgba(13, 148, 136, 0.06);
+  --badge-border: rgba(13, 148, 136, 0.15);
   --badge-text: #0f766e;
 }
 
@@ -138,23 +138,35 @@ body {
   box-shadow: 0 0 25px rgba(20, 184, 166, 0.15);
 }
 
-/* 4. КНОПКА ОТПРАВКИ (ELEGANT ACCENT CTA) */
+/* 4. КНОПКА ОТПРАВКИ (PRESTIGE MONOCHROME / HIGH-END MINIMALISM) */
 .btn-cta {
-  background: linear-gradient(135deg, #0d9488 0%, #059669 100%);
-  color: #ffffff;
-  border-top: 1px solid rgba(255, 255, 255, 0.25);
-  box-shadow: 0 10px 25px -5px rgba(13, 148, 136, 0.35);
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  background: #ffffff;
+  color: #090a0f;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 4px 16px -2px rgba(0, 0, 0, 0.4);
+  transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .btn-cta:hover:not(:disabled) {
+  background: #f1f5f9;
   transform: translateY(-1px);
-  background: linear-gradient(135deg, #14b8a6 0%, #10b981 100%);
-  box-shadow: 0 14px 30px -5px rgba(20, 184, 166, 0.45);
+  box-shadow: 0 6px 20px -2px rgba(255, 255, 255, 0.15);
 }
 
 .btn-cta:active:not(:disabled) {
   transform: translateY(0);
+}
+
+html[data-theme="light"] .btn-cta {
+  background: #09090b;
+  color: #ffffff;
+  border: 1px solid #09090b;
+  box-shadow: 0 4px 16px -2px rgba(9, 9, 11, 0.15);
+}
+
+html[data-theme="light"] .btn-cta:hover:not(:disabled) {
+  background: #27272a;
+  box-shadow: 0 6px 20px -2px rgba(9, 9, 11, 0.22);
 }
 
 /* Кастомный скроллбар */
