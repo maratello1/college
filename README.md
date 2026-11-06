@@ -16,7 +16,7 @@
 
 **Учебная группа:** 1РУП8  
 **Репозиторий:** [github.com/maratello1/college](https://github.com/maratello1/college)  
-**Онлайн-демо (временный публичный домен):** [polite-turtle-45.loca.lt](https://polite-turtle-45.loca.lt) *(если запросит пароль туннеля — введите внешний IP сервера `31.77.217.78`)*
+**Онлайн-демо (временный HTTPS-домен):** [hunger-caution-femur.ngrok-free.dev](https://hunger-caution-femur.ngrok-free.dev) *(при первом входе нажмите кнопку «Visit Site»)*
 
 ---
 
