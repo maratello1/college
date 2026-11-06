@@ -18,6 +18,10 @@ import {
   FileText,
   ShieldCheck,
   ChevronDown,
+  Sparkles,
+  Users,
+  Award,
+  Layers,
 } from "lucide-react";
 import {
   STUDENTS_1RUP8,
@@ -52,7 +56,6 @@ export default function LabDropPage() {
   const [isDragging, setIsDragging] = useState<boolean>(false);
   const [validationError, setValidationError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
-  const [uploadProgress, setUploadProgress] = useState<number>(0);
 
   // Экран успешной сдачи
   const [submittedData, setSubmittedData] = useState<{
@@ -173,7 +176,7 @@ export default function LabDropPage() {
 
     // 1. Проверка на 0 байт
     if (selectedFile.size === 0) {
-      setValidationError("Файл не содержит данных");
+      setValidationError("Файл не содержит данных (0 байт)");
       return false;
     }
 
@@ -252,7 +255,6 @@ export default function LabDropPage() {
     if (!validateFile(file)) return;
 
     setIsSubmitting(true);
-    setUploadProgress(25);
 
     const formData = new FormData();
     formData.append("student", student);
@@ -260,13 +262,11 @@ export default function LabDropPage() {
     formData.append("file", file);
 
     try {
-      setUploadProgress(65);
       const res = await fetch("/api/upload", {
         method: "POST",
         body: formData,
       });
 
-      setUploadProgress(100);
       const data = await res.json();
 
       if (res.ok && data.status === "ok") {
@@ -285,7 +285,6 @@ export default function LabDropPage() {
       setValidationError("Не удалось связаться с сервером. Проверьте соединение с локальной сетью кабинета.");
     } finally {
       setIsSubmitting(false);
-      setUploadProgress(0);
     }
   };
 
@@ -336,72 +335,78 @@ export default function LabDropPage() {
   const isFormValid = Boolean(student && task && file && !validationError);
 
   return (
-    <main className="max-w-4xl mx-auto px-4 py-8 flex flex-col gap-6">
-      {/* 1. ШАПКА СЕРВИСА */}
-      <header className="glass-panel p-6 sm:p-7 flex flex-col gap-4">
+    <main className="max-w-4xl mx-auto px-4 py-8 sm:py-12 flex flex-col gap-6 sm:gap-8">
+      {/* 1. ГЛАВНАЯ СТЕКЛЯННАЯ ШАПКА */}
+      <header className="glass-panel p-6 sm:p-8 flex flex-col gap-5">
+        <div className="glass-specular-line" />
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-cyan-500/20 to-blue-600/40 border border-white/20 flex items-center justify-center text-accent-cyan shadow-lg shadow-blue-500/20">
-              <UploadCloud className="w-7 h-7" />
+            {/* Кристаллический логотип */}
+            <div className="relative w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-500/25 via-teal-500/30 to-cyan-500/25 border border-teal-400/40 flex items-center justify-center text-teal-300 shadow-[0_0_25px_rgba(45,212,191,0.35)] shrink-0">
+              <div className="absolute inset-0 rounded-2xl bg-teal-400/10 blur-[6px]" />
+              <Layers className="w-7 h-7 relative z-10 text-teal-200" />
             </div>
+
             <div>
               <div className="flex items-center gap-2.5 flex-wrap">
-                <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight bg-gradient-to-r from-white via-slate-100 to-cyan-400 bg-clip-text text-transparent">
+                <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight bg-gradient-to-r from-emerald-100 via-teal-200 to-cyan-300 bg-clip-text text-transparent">
                   LabDrop
                 </h1>
-                <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30">
+                <span className="text-xs font-bold px-3 py-1 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-400/30 shadow-[0_0_12px_rgba(16,185,129,0.2)]">
                   1РУП8
                 </span>
-                <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/25 flex items-center gap-1">
-                  <ShieldCheck className="w-3 h-3" /> Strix SecOps
+                <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-teal-500/15 text-teal-300 border border-teal-400/30 flex items-center gap-1 shadow-[0_0_10px_rgba(20,184,166,0.15)]">
+                  <ShieldCheck className="w-3.5 h-3.5 text-teal-300" /> Strix SecOps
                 </span>
               </div>
-              <p className="text-sm text-slate-400 mt-0.5">
-                Сдача практических работ в кабинете колледжа. Без входа в личные аккаунты.
+              <p className="text-sm text-teal-200/80 mt-1 font-medium">
+                Мгновенная сдача практических работ. Без логинов и паролей на общих ПК.
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-3">
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/25 text-emerald-400 text-xs font-medium backdrop-blur-md">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-950/50 border border-emerald-400/30 text-emerald-300 text-xs font-semibold backdrop-blur-md shadow-[0_0_15px_rgba(16,185,129,0.2)]">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_#34d399]" />
               Сервер активен
             </div>
 
             <button
               onClick={toggleTheme}
-              className="p-2.5 rounded-xl bg-white/5 border border-white/10 text-slate-300 hover:text-white hover:bg-white/10 transition-colors"
+              className="glass-btn-secondary p-2.5 rounded-xl text-teal-300 hover:text-white transition-all"
               title="Переключить тему оформления"
               aria-label="Сменить тему"
             >
-              {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+              {theme === "dark" ? <Sun className="w-5 h-5 text-amber-300" /> : <Moon className="w-5 h-5 text-teal-800" />}
             </button>
           </div>
         </div>
 
-        <div className="pt-3 border-t border-white/10 flex items-center justify-between flex-wrap gap-2 text-xs text-slate-400">
+        {/* Инфо-строка авторов и класса */}
+        <div className="pt-3.5 border-t border-teal-500/15 flex items-center justify-between flex-wrap gap-2 text-xs text-teal-200/70">
           <div>
-            Авторы: <strong className="text-slate-200">Алиев Марат</strong> (бэкенд) и{" "}
-            <strong className="text-slate-200">Савченков Артем</strong> (фронтенд)
+            Авторы: <strong className="text-emerald-200 font-semibold">Савченков Артем</strong> (фронтенд) и{" "}
+            <strong className="text-emerald-200 font-semibold">Алиев Марат</strong> (бэкенд)
           </div>
-          <div className="text-accent-cyan">Компьютерный класс • Группа 1РУП8</div>
+          <div className="text-teal-400 font-medium">Компьютерный класс • Группа 1РУП8</div>
         </div>
       </header>
 
       {/* 2. КАРТОЧКА ЗАДАНИЯ К УРОКУ */}
-      <section className="glass-panel p-5 sm:p-6 flex items-center justify-between flex-wrap gap-4">
+      <section className="glass-panel p-6 sm:p-7 flex items-center justify-between flex-wrap gap-4">
+        <div className="glass-specular-line" />
         <div className="flex items-center gap-4 min-w-[280px]">
-          <div className="w-12 h-12 rounded-xl bg-cyan-500/10 border border-cyan-500/25 flex items-center justify-center text-accent-cyan shrink-0">
+          <div className="w-13 h-13 rounded-2xl bg-gradient-to-br from-emerald-500/20 to-teal-600/30 border border-teal-400/30 flex items-center justify-center text-teal-300 shadow-[0_0_20px_rgba(20,184,166,0.25)] shrink-0">
             <FileText className="w-6 h-6" />
           </div>
           <div>
-            <span className="text-[11px] font-bold uppercase tracking-wider text-accent-cyan bg-cyan-500/15 px-2 py-0.5 rounded">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-teal-300 bg-teal-500/15 border border-teal-400/30 px-2.5 py-0.5 rounded-full">
               Текущий урок
             </span>
-            <h2 className="text-base sm:text-lg font-bold text-slate-100 mt-1">
+            <h2 className="text-base sm:text-lg font-bold text-emerald-50 mt-1">
               Задание к сегодняшнему занятию
             </h2>
-            <p className="text-xs sm:text-sm text-slate-400">
+            <p className="text-xs sm:text-sm text-teal-200/70">
               Скачайте файл с методичкой в 1 клик без входа в мессенджер Макс (российский мессенджер)
             </p>
           </div>
@@ -410,9 +415,9 @@ export default function LabDropPage() {
         <a
           href="/tasks/zadanie_current.pdf"
           download="zadanie_current.pdf"
-          className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-white text-slate-900 font-semibold text-sm hover:bg-slate-100 transition-all shadow-md shrink-0 w-full sm:w-auto"
+          className="glass-btn-secondary px-5 py-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-2.5 w-full sm:w-auto shadow-md hover:border-teal-400/60 transition-all"
         >
-          <Download className="w-4 h-4 text-blue-600" />
+          <Download className="w-4 h-4 text-teal-300" />
           <span>Скачать задание (.pdf)</span>
         </a>
       </section>
@@ -420,18 +425,19 @@ export default function LabDropPage() {
       {/* 3. ОСНОВНАЯ ФОРМА СДАЧИ РАБОТЫ */}
       {!submittedData ? (
         <section className="glass-panel p-6 sm:p-8">
+          <div className="glass-specular-line" />
           <div className="mb-6">
             <div className="flex items-center gap-2.5 flex-wrap">
-              <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-100">
+              <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-emerald-50">
                 Форма сдачи выполненной работы
               </h2>
-              <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-cyan-500/15 text-accent-cyan border border-cyan-500/25">
+              <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-teal-500/15 text-teal-300 border border-teal-400/30 shadow-[0_0_10px_rgba(20,184,166,0.2)]">
                 Сдача за 20 секунд
               </span>
             </div>
-            <p className="text-sm text-slate-400 mt-1">
+            <p className="text-sm text-teal-200/70 mt-1.5">
               Файл автоматически сохранится по стандарту колледжа:{" "}
-              <code className="text-xs font-mono text-accent-cyan bg-white/5 px-2 py-0.5 rounded border border-white/10">
+              <code className="text-xs font-mono text-teal-300 bg-emerald-950/60 px-2 py-0.5 rounded border border-teal-500/30 shadow-inner">
                 1RUP8_Фамилия_Работа[№].[расширение]
               </code>
             </p>
@@ -450,8 +456,8 @@ export default function LabDropPage() {
             {/* Выбор студента и номера работы */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="flex flex-col gap-1.5">
-                <label htmlFor="studentSelect" className="text-sm font-semibold text-slate-200">
-                  Студент группы 1РУП8 <span className="text-rose-500">*</span>
+                <label htmlFor="studentSelect" className="text-sm font-semibold text-emerald-100">
+                  Студент группы 1РУП8 <span className="text-rose-400">*</span>
                 </label>
                 <div className="relative">
                   <select
@@ -461,22 +467,22 @@ export default function LabDropPage() {
                     required
                     className="glass-input w-full h-12 px-4 pr-10 rounded-xl text-sm appearance-none outline-none cursor-pointer"
                   >
-                    <option value="" disabled className="bg-slate-900 text-slate-400">
+                    <option value="" disabled className="bg-[#04120e] text-teal-400">
                       — Выберите свою фамилию —
                     </option>
                     {STUDENTS_1RUP8.map((name) => (
-                      <option key={name} value={name} className="bg-slate-900 text-slate-100">
+                      <option key={name} value={name} className="bg-[#04120e] text-emerald-100">
                         {name}
                       </option>
                     ))}
                   </select>
-                  <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <ChevronDown className="w-4 h-4 text-teal-400 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                 </div>
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <label htmlFor="taskSelect" className="text-sm font-semibold text-slate-200">
-                  Номер практической работы <span className="text-rose-500">*</span>
+                <label htmlFor="taskSelect" className="text-sm font-semibold text-emerald-100">
+                  Номер практической работы <span className="text-rose-400">*</span>
                 </label>
                 <div className="relative">
                   <select
@@ -486,24 +492,24 @@ export default function LabDropPage() {
                     required
                     className="glass-input w-full h-12 px-4 pr-10 rounded-xl text-sm appearance-none outline-none cursor-pointer"
                   >
-                    <option value="" disabled className="bg-slate-900 text-slate-400">
+                    <option value="" disabled className="bg-[#04120e] text-teal-400">
                       — Выберите номер работы —
                     </option>
                     {Array.from({ length: 10 }, (_, i) => i + 1).map((num) => (
-                      <option key={num} value={String(num)} className="bg-slate-900 text-slate-100">
+                      <option key={num} value={String(num)} className="bg-[#04120e] text-emerald-100">
                         Практическая работа №{num}
                       </option>
                     ))}
                   </select>
-                  <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <ChevronDown className="w-4 h-4 text-teal-400 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                 </div>
               </div>
             </div>
 
             {/* Drag and Drop Зона загрузки файла */}
             <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-semibold text-slate-200">
-                Файл с выполненным заданием <span className="text-rose-500">*</span>
+              <label className="text-sm font-semibold text-emerald-100">
+                Файл с выполненным заданием <span className="text-rose-400">*</span>
               </label>
 
               <div
@@ -511,13 +517,9 @@ export default function LabDropPage() {
                 onDragLeave={onDragLeave}
                 onDrop={onDrop}
                 onClick={() => !file && fileInputRef.current?.click()}
-                className={`relative border-2 border-dashed rounded-2xl p-6 sm:p-8 text-center cursor-pointer transition-all ${
-                  isDragging
-                    ? "border-accent-cyan bg-cyan-500/10 scale-[1.01]"
-                    : validationError
-                    ? "border-rose-500/50 bg-rose-500/5"
-                    : "border-white/15 bg-slate-950/30 hover:border-accent-cyan/60 hover:bg-cyan-500/5"
-                }`}
+                className={`glass-dropzone p-6 sm:p-8 text-center cursor-pointer ${
+                  isDragging ? "active" : ""
+                } ${validationError ? "border-rose-500/50 bg-rose-950/20" : ""}`}
               >
                 <input
                   ref={fileInputRef}
@@ -533,11 +535,11 @@ export default function LabDropPage() {
 
                 {!file ? (
                   <div className="flex flex-col items-center gap-3">
-                    <div className="w-14 h-14 rounded-full bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center text-accent-cyan">
-                      <UploadCloud className="w-7 h-7" />
+                    <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-500/20 via-teal-500/25 to-cyan-500/20 border border-teal-400/40 flex items-center justify-center text-teal-300 shadow-[0_0_20px_rgba(45,212,191,0.25)]">
+                      <UploadCloud className="w-8 h-8" />
                     </div>
                     <div>
-                      <p className="text-sm sm:text-base font-medium text-slate-200">
+                      <p className="text-sm sm:text-base font-medium text-emerald-100">
                         Перетащите файл сюда или{" "}
                         <button
                           type="button"
@@ -545,38 +547,38 @@ export default function LabDropPage() {
                             e.stopPropagation();
                             fileInputRef.current?.click();
                           }}
-                          className="text-accent-cyan font-bold underline hover:text-cyan-300"
+                          className="text-teal-300 font-bold underline hover:text-teal-200 transition-colors"
                         >
                           выберите на компьютере
                         </button>
                       </p>
-                      <div className="flex items-center justify-center gap-1.5 flex-wrap mt-2">
+                      <div className="flex items-center justify-center gap-1.5 flex-wrap mt-2.5">
                         {ALLOWED_EXTENSIONS.map((ext) => (
                           <span
                             key={ext}
-                            className="font-mono text-[11px] font-bold px-2 py-0.5 rounded bg-white/5 border border-white/10 text-slate-300"
+                            className="font-mono text-[11px] font-bold px-2.5 py-0.5 rounded-md bg-emerald-950/50 border border-teal-500/25 text-teal-300"
                           >
                             {ext}
                           </span>
                         ))}
-                        <span className="text-xs text-slate-400 ml-1">• до 50 МБ</span>
+                        <span className="text-xs text-teal-200/60 ml-1">• до 50 МБ</span>
                       </div>
                     </div>
                   </div>
                 ) : (
-                  <div className="flex items-center justify-between p-3.5 bg-slate-900/80 border border-white/15 rounded-xl">
+                  <div className="flex items-center justify-between p-4 bg-[#031510]/85 border border-teal-400/35 rounded-xl shadow-lg backdrop-blur-xl">
                     <div className="flex items-center gap-3.5 text-left overflow-hidden">
-                      <div className="px-3 py-2 rounded-lg bg-cyan-500/20 text-accent-cyan font-mono text-xs font-bold border border-cyan-500/30">
+                      <div className="px-3 py-2 rounded-lg bg-teal-500/20 text-teal-300 font-mono text-xs font-bold border border-teal-400/40">
                         {file.name.split(".").pop()?.toUpperCase() || "FILE"}
                       </div>
                       <div className="overflow-hidden">
-                        <div className="text-sm font-semibold text-slate-100 truncate max-w-[280px] sm:max-w-md">
+                        <div className="text-sm font-semibold text-emerald-50 truncate max-w-[280px] sm:max-w-md">
                           {file.name}
                         </div>
-                        <div className="flex items-center gap-2 text-xs text-slate-400 mt-0.5">
-                          <span className="font-mono">{formatBytes(file.size)}</span>
-                          <span className="text-emerald-400 font-medium flex items-center gap-1">
-                            <FileCheck2 className="w-3.5 h-3.5" /> Готов к отправке
+                        <div className="flex items-center gap-2 text-xs text-teal-200/70 mt-0.5">
+                          <span className="font-mono text-teal-300">{formatBytes(file.size)}</span>
+                          <span className="text-emerald-300 font-medium flex items-center gap-1">
+                            <FileCheck2 className="w-3.5 h-3.5 text-emerald-400" /> Готов к отправке
                           </span>
                         </div>
                       </div>
@@ -585,35 +587,19 @@ export default function LabDropPage() {
                     <button
                       type="button"
                       onClick={clearFile}
-                      className="p-2 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors"
-                      title="Выбрать другой файл"
+                      className="p-2 rounded-lg bg-white/5 hover:bg-rose-500/20 text-teal-300 hover:text-rose-300 transition-colors shrink-0"
+                      title="Удалить выбранный файл"
                     >
-                      <X className="w-5 h-5" />
+                      <X className="w-4 h-4" />
                     </button>
                   </div>
                 )}
               </div>
 
-              {/* Прогресс-бар загрузки */}
-              {isSubmitting && (
-                <div className="flex flex-col gap-1.5 mt-2">
-                  <div className="h-2 w-full bg-white/10 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-gradient-to-r from-cyan-400 to-blue-500 rounded-full transition-all duration-300"
-                      style={{ width: `${uploadProgress}%` }}
-                    />
-                  </div>
-                  <div className="flex justify-between text-xs text-slate-400">
-                    <span>Передача файла на сервер...</span>
-                    <span>{uploadProgress}%</span>
-                  </div>
-                </div>
-              )}
-
-              {/* Ошибка валидации */}
+              {/* Сообщение об ошибке валидации */}
               {validationError && (
-                <div className="flex items-center gap-2.5 p-3.5 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-300 text-sm mt-2">
-                  <AlertCircle className="w-5 h-5 shrink-0 text-rose-400" />
+                <div className="flex items-center gap-2 p-3 rounded-xl bg-rose-950/50 border border-rose-500/40 text-rose-200 text-xs sm:text-sm font-medium mt-1 backdrop-blur-md">
+                  <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
                   <span>{validationError}</span>
                 </div>
               )}
@@ -623,16 +609,16 @@ export default function LabDropPage() {
             <button
               type="submit"
               disabled={!isFormValid || isSubmitting}
-              className={`w-full py-4 rounded-xl font-bold text-base flex items-center justify-center gap-2.5 transition-all shadow-lg ${
+              className={`w-full py-4 rounded-xl font-bold text-base flex items-center justify-center gap-2.5 transition-all ${
                 isFormValid && !isSubmitting
-                  ? "bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white shadow-blue-500/25 hover:shadow-cyan-500/35 cursor-pointer"
-                  : "bg-slate-800 text-slate-500 border border-white/5 cursor-not-allowed"
+                  ? "glass-btn-primary cursor-pointer"
+                  : "bg-emerald-950/30 text-teal-500/40 border border-teal-500/15 cursor-not-allowed"
               }`}
             >
               {isSubmitting ? (
                 <>
                   <RefreshCw className="w-5 h-5 animate-spin" />
-                  <span>Отправка...</span>
+                  <span>Отправка работы на сервер...</span>
                 </>
               ) : (
                 <>
@@ -646,90 +632,92 @@ export default function LabDropPage() {
       ) : (
         /* 4. ЭКРАН ПОДТВЕРЖДЕНИЯ СДАЧИ */
         <section className="glass-panel p-8 sm:p-10 text-center flex flex-col items-center">
-          <div className="w-16 h-16 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 flex items-center justify-center mb-4 shadow-lg shadow-emerald-500/20">
-            <CheckCircle2 className="w-8 h-8" />
+          <div className="glass-specular-line" />
+          <div className="relative w-20 h-20 rounded-full bg-gradient-to-br from-emerald-500/30 via-teal-500/30 to-cyan-500/30 border-2 border-emerald-400 text-emerald-300 flex items-center justify-center mb-4 shadow-[0_0_40px_rgba(16,185,129,0.45)]">
+            <CheckCircle2 className="w-10 h-10 text-emerald-300" />
           </div>
 
-          <h2 className="text-2xl font-extrabold text-slate-100">Работа успешно принята!</h2>
-          <p className="text-sm text-slate-400 mt-1 max-w-md">
+          <h2 className="text-2xl sm:text-3xl font-extrabold text-emerald-50">Работа успешно принята!</h2>
+          <p className="text-sm text-teal-200/80 mt-1 max-w-md">
             Файл зарегистрирован в журнале преподавателя и сохранен на сервере кабинета.
           </p>
 
-          <div className="w-full max-w-lg bg-slate-950/40 border border-white/10 rounded-2xl p-5 my-6 flex flex-col gap-3 text-left">
-            <div className="flex justify-between items-center text-sm py-1 border-b border-white/5">
-              <span className="text-slate-400">Студент:</span>
-              <strong className="text-slate-100">{submittedData.student}</strong>
+          <div className="w-full max-w-lg bg-[#031510]/85 border border-teal-400/35 rounded-2xl p-6 my-6 flex flex-col gap-3 text-left shadow-xl backdrop-blur-xl">
+            <div className="flex justify-between items-center text-sm py-1.5 border-b border-teal-500/15">
+              <span className="text-teal-200/70 font-medium">Студент:</span>
+              <strong className="text-emerald-100 font-semibold">{submittedData.student}</strong>
             </div>
 
-            <div className="flex justify-between items-center text-sm py-1 border-b border-white/5">
-              <span className="text-slate-400">Задание:</span>
-              <strong className="text-slate-100">{submittedData.task}</strong>
+            <div className="flex justify-between items-center text-sm py-1.5 border-b border-teal-500/15">
+              <span className="text-teal-200/70 font-medium">Задание:</span>
+              <strong className="text-emerald-100 font-semibold">{submittedData.task}</strong>
             </div>
 
-            <div className="flex justify-between items-center text-sm py-1 border-b border-white/5">
-              <span className="text-slate-400">Имя на сервере:</span>
+            <div className="flex justify-between items-center text-sm py-1.5 border-b border-teal-500/15">
+              <span className="text-teal-200/70 font-medium">Имя на сервере:</span>
               <div className="flex items-center gap-2">
-                <code className="font-mono text-xs text-accent-cyan bg-cyan-500/10 px-2.5 py-1 rounded border border-cyan-500/20">
+                <code className="font-mono text-xs text-teal-300 bg-teal-950/70 px-2.5 py-1 rounded border border-teal-400/30">
                   {submittedData.filename}
                 </code>
                 <button
                   type="button"
                   onClick={handleCopyFilename}
-                  className="px-2.5 py-1 rounded bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-semibold text-slate-300 flex items-center gap-1"
+                  className="glass-btn-secondary px-2.5 py-1 rounded text-xs font-semibold flex items-center gap-1"
                 >
-                  <Copy className="w-3.5 h-3.5" />
+                  <Copy className="w-3.5 h-3.5 text-teal-300" />
                   <span>{copyFeedback}</span>
                 </button>
               </div>
             </div>
 
-            <div className="flex justify-between items-center text-sm py-1 border-b border-white/5">
-              <span className="text-slate-400">Время сдачи:</span>
-              <span className="font-mono text-accent-cyan font-bold">{submittedData.time}</span>
+            <div className="flex justify-between items-center text-sm py-1.5 border-b border-teal-500/15">
+              <span className="text-teal-200/70 font-medium">Время сдачи:</span>
+              <span className="font-mono text-teal-300 font-bold">{submittedData.time}</span>
             </div>
 
-            <div className="flex justify-between items-center text-sm py-1">
-              <span className="text-slate-400">Размер:</span>
-              <span className="text-slate-200">{submittedData.size_kb}</span>
+            <div className="flex justify-between items-center text-sm py-1.5">
+              <span className="text-teal-200/70 font-medium">Размер файла:</span>
+              <span className="text-emerald-100 font-mono">{submittedData.size_kb}</span>
             </div>
           </div>
 
           <button
             type="button"
             onClick={handleResetForm}
-            className="px-6 py-3 rounded-xl bg-white/10 hover:bg-white/15 border border-white/15 text-slate-200 font-semibold text-sm transition-all flex items-center gap-2"
+            className="glass-btn-secondary px-7 py-3 rounded-xl font-semibold text-sm flex items-center gap-2 shadow-lg"
           >
-            <RefreshCw className="w-4 h-4" />
+            <RefreshCw className="w-4 h-4 text-teal-300" />
             <span>Сдать еще одну работу</span>
           </button>
         </section>
       )}
 
       {/* 5. МОНИТОР СТАРОСТЫ И ПРЕПОДАВАТЕЛЯ (DASHBOARD) */}
-      <section className="glass-panel p-6 sm:p-7">
-        <div className="flex items-center justify-between flex-wrap gap-4 mb-5">
+      <section className="glass-panel p-6 sm:p-8">
+        <div className="glass-specular-line" />
+        <div className="flex items-center justify-between flex-wrap gap-4 mb-6">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-center text-indigo-400">
-              <FileCode className="w-5 h-5" />
+            <div className="w-11 h-11 rounded-xl bg-teal-500/20 border border-teal-400/30 flex items-center justify-center text-teal-300 shadow-[0_0_15px_rgba(20,184,166,0.25)]">
+              <FileCode className="w-6 h-6" />
             </div>
             <div>
-              <h3 className="text-lg font-bold text-slate-100">Монитор сдачи работ (Группа 1РУП8)</h3>
-              <p className="text-xs text-slate-400">Сводка для старосты и преподавателя на текущей паре</p>
+              <h3 className="text-lg sm:text-xl font-bold text-emerald-50">Монитор сдачи работ (Группа 1РУП8)</h3>
+              <p className="text-xs text-teal-200/70">Сводка для старосты и преподавателя на текущей паре</p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2.5">
             <button
               onClick={handleRefresh}
-              className="px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-semibold text-slate-200 flex items-center gap-1.5 transition-colors"
+              className="glass-btn-secondary px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5"
             >
-              <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? "animate-spin" : ""}`} />
+              <RefreshCw className={`w-3.5 h-3.5 text-teal-300 ${isRefreshing ? "animate-spin" : ""}`} />
               <span>Обновить</span>
             </button>
 
             <a
               href="/api/download-log"
-              className="px-3.5 py-2 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-300 text-xs font-semibold flex items-center gap-1.5 transition-colors"
+              className="glass-btn-primary px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5"
             >
               <FileSpreadsheet className="w-4 h-4" />
               <span>Экспорт в Excel (.csv)</span>
@@ -738,115 +726,113 @@ export default function LabDropPage() {
         </div>
 
         {/* 4 Виджета статистики */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5 mb-5">
-          <div className="p-4 rounded-xl bg-slate-950/40 border border-white/5 text-left">
-            <div className="text-xs text-slate-400 uppercase font-semibold">Всего сдач</div>
-            <div className="text-2xl font-extrabold font-mono text-slate-100 my-0.5">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5 mb-6">
+          <div className="p-4 rounded-2xl bg-[#031510]/80 border border-teal-400/25 shadow-md">
+            <span className="text-xs text-teal-200/70 font-medium">Всего сдано</span>
+            <div className="text-2xl sm:text-3xl font-extrabold text-emerald-100 mt-1">
               {stats.total_submissions}
             </div>
-            <div className="text-[11px] text-slate-500">файлов принято</div>
+            <div className="text-[11px] text-teal-400 mt-0.5">работ на сервере</div>
           </div>
 
-          <div className="p-4 rounded-xl bg-slate-950/40 border border-white/5 text-left">
-            <div className="text-xs text-slate-400 uppercase font-semibold">Сдали студентов</div>
-            <div className="text-2xl font-extrabold font-mono text-slate-100 my-0.5">
-              {stats.unique_students} / {stats.group_size}
+          <div className="p-4 rounded-2xl bg-[#031510]/80 border border-teal-400/25 shadow-md">
+            <span className="text-xs text-teal-200/70 font-medium">Студентов сдали</span>
+            <div className="text-2xl sm:text-3xl font-extrabold text-teal-200 mt-1">
+              {stats.unique_students} <span className="text-sm font-normal text-teal-400">/ 15</span>
             </div>
-            <div className="text-[11px] text-slate-500">уникальных авторов</div>
+            <div className="text-[11px] text-teal-400 mt-0.5">человек из 1РУП8</div>
           </div>
 
-          <div className="p-4 rounded-xl bg-slate-950/40 border border-white/5 text-left">
-            <div className="text-xs text-slate-400 uppercase font-semibold">Охват группы</div>
-            <div className="text-2xl font-extrabold font-mono text-accent-cyan my-0.5">
+          <div className="p-4 rounded-2xl bg-[#031510]/80 border border-teal-400/25 shadow-md">
+            <span className="text-xs text-teal-200/70 font-medium">Охват группы</span>
+            <div className="text-2xl sm:text-3xl font-extrabold text-emerald-300 mt-1">
               {stats.percent}%
             </div>
-            <div className="text-[11px] text-slate-500">сдали хотя бы 1 работу</div>
-          </div>
-
-          <div className="p-4 rounded-xl bg-slate-950/40 border border-white/5 text-left">
-            <div className="text-xs text-slate-400 uppercase font-semibold">Безопасность</div>
-            <div className="text-2xl font-extrabold font-mono text-emerald-400 my-0.5">
-              100%
+            <div className="w-full bg-emerald-950/60 h-1.5 rounded-full overflow-hidden mt-1.5 border border-teal-500/20">
+              <div
+                className="bg-gradient-to-r from-emerald-400 to-teal-300 h-full rounded-full transition-all duration-500"
+                style={{ width: `${Math.min(stats.percent, 100)}%` }}
+              />
             </div>
-            <div className="text-[11px] text-slate-500">Strix SecOps Verified</div>
           </div>
-        </div>
 
-        {/* Прогресс-бар охвата */}
-        <div className="h-1.5 w-full bg-white/10 rounded-full overflow-hidden mb-5">
-          <div
-            className="h-full bg-gradient-to-r from-cyan-400 via-blue-500 to-emerald-400 rounded-full transition-all duration-500"
-            style={{ width: `${Math.min(stats.percent, 100)}%` }}
-          />
+          <div className="p-4 rounded-2xl bg-[#031510]/80 border border-teal-400/25 shadow-md">
+            <span className="text-xs text-teal-200/70 font-medium">Статус класса</span>
+            <div className="text-base sm:text-lg font-bold text-emerald-200 mt-1 flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399]" />
+              Активен
+            </div>
+            <div className="text-[11px] text-teal-400 mt-0.5">Кабинет подключен</div>
+          </div>
         </div>
 
         {/* Поиск и фильтрация */}
-        <div className="flex items-center gap-3 flex-wrap mb-4">
-          <div className="relative flex-1 min-w-[220px]">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+        <div className="flex flex-col sm:flex-row items-center gap-3 mb-4">
+          <div className="relative w-full sm:flex-1">
+            <Search className="w-4 h-4 text-teal-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Поиск по фамилии или файлу..."
-              className="glass-input w-full h-10 pl-10 pr-4 rounded-lg text-xs sm:text-sm outline-none"
+              placeholder="Поиск по фамилии студента или файлу..."
+              className="glass-input w-full h-11 pl-10 pr-4 rounded-xl text-sm outline-none"
             />
           </div>
 
-          <div className="relative">
+          <div className="relative w-full sm:w-56">
             <select
               value={taskFilter}
               onChange={(e) => setTaskFilter(e.target.value)}
-              className="glass-input h-10 px-3.5 pr-8 rounded-lg text-xs sm:text-sm appearance-none outline-none cursor-pointer"
+              className="glass-input w-full h-11 px-4 pr-10 rounded-xl text-sm appearance-none outline-none cursor-pointer"
             >
-              <option value="all" className="bg-slate-900">Все практические</option>
+              <option value="all" className="bg-[#04120e] text-teal-300">Все практические</option>
               {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
-                <option key={n} value={String(n)} className="bg-slate-900">
+                <option key={n} value={String(n)} className="bg-[#04120e] text-emerald-100">
                   Работа №{n}
                 </option>
               ))}
             </select>
-            <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <ChevronDown className="w-4 h-4 text-teal-400 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
           </div>
         </div>
 
-        {/* Таблица журнала */}
-        <div className="overflow-x-auto rounded-xl border border-white/10 bg-slate-950/30">
-          <table className="w-full text-left text-xs sm:text-sm">
-            <thead>
-              <tr className="border-b border-white/10 bg-white/5 text-slate-400 text-xs font-semibold">
-                <th className="p-3 whitespace-nowrap">Время</th>
-                <th className="p-3">Студент</th>
-                <th className="p-3 whitespace-nowrap">Задание</th>
-                <th className="p-3">Имя файла</th>
-                <th className="p-3 whitespace-nowrap">Размер</th>
+        {/* Таблица сданных работ */}
+        <div className="overflow-x-auto rounded-xl border border-teal-500/25 bg-[#031510]/70 backdrop-blur-md">
+          <table className="w-full text-left text-sm">
+            <thead className="bg-[#020d09]/90 text-[11px] uppercase tracking-wider text-teal-300/80 border-b border-teal-500/20 font-semibold">
+              <tr>
+                <th className="py-3 px-4">Студент</th>
+                <th className="py-3 px-4">Задание</th>
+                <th className="py-3 px-4">Имя файла на сервере</th>
+                <th className="py-3 px-4">Время</th>
+                <th className="py-3 px-4">Размер</th>
+                <th className="py-3 px-4 text-right">Статус</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/5 text-slate-200">
+            <tbody className="divide-y divide-teal-500/15">
               {filteredSubmissions.length > 0 ? (
-                filteredSubmissions.map((row, idx) => (
-                  <tr key={idx} className="hover:bg-white/[0.03] transition-colors">
-                    <td className="p-3 font-mono text-xs whitespace-nowrap text-slate-400">
-                      {row.datetime}
-                    </td>
-                    <td className="p-3 font-semibold text-slate-100">{row.student}</td>
-                    <td className="p-3 whitespace-nowrap">{row.task}</td>
-                    <td className="p-3 font-mono text-xs text-accent-cyan">
-                      <span className="bg-cyan-500/10 px-2 py-0.5 rounded border border-cyan-500/20">
-                        {row.filename}
+                filteredSubmissions.map((item, idx) => (
+                  <tr key={idx} className="hover:bg-teal-500/10 transition-colors">
+                    <td className="py-3 px-4 font-semibold text-emerald-50">{item.student}</td>
+                    <td className="py-3 px-4">
+                      <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+                        {item.task}
                       </span>
                     </td>
-                    <td className="p-3 font-mono text-xs text-slate-400 whitespace-nowrap">
-                      {row.size_kb}
+                    <td className="py-3 px-4 font-mono text-xs text-teal-300">{item.filename}</td>
+                    <td className="py-3 px-4 text-xs text-teal-200/70 font-mono">{item.datetime.slice(11, 16)}</td>
+                    <td className="py-3 px-4 text-xs text-teal-200/80">{item.size_kb} КБ</td>
+                    <td className="py-3 px-4 text-right">
+                      <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-400 bg-emerald-500/15 border border-emerald-500/30 px-2 py-0.5 rounded-full shadow-[0_0_8px_rgba(16,185,129,0.2)]">
+                        <CheckCircle2 className="w-3.5 h-3.5" /> Сдано
+                      </span>
                     </td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan={5} className="p-8 text-center text-slate-500 text-sm">
-                    {submissions.length === 0
-                      ? "Работ пока не сдано. Сдайте первую работу через форму выше!"
-                      : "Ничего не найдено по вашему запросу."}
+                  <td colSpan={6} className="py-8 text-center text-teal-200/60 text-sm">
+                    {searchQuery ? "По данному запросу ничего не найдено" : "Сданных работ пока нет. Будьте первыми!"}
                   </td>
                 </tr>
               )}
@@ -855,14 +841,12 @@ export default function LabDropPage() {
         </div>
       </section>
 
-      {/* 6. ПОДВАЛ */}
-      <footer className="glass-panel p-5 flex items-center justify-between flex-wrap gap-3 text-xs text-slate-400">
-        <div>
-          © 2026 LabDrop | 1РУП8. Сдача практических работ без паролей.
-        </div>
-        <div className="text-slate-500">
-          Стек: TypeScript • Next.js 15 • React 19 • Tailwind CSS • Strix SecOps
-        </div>
+      {/* 6. ФУТЕР */}
+      <footer className="text-center text-xs text-teal-200/60 pb-6 flex flex-col gap-1">
+        <p>© 2026 LabDrop | 1РУП8. Разработано для компьютерных классов колледжа.</p>
+        <p className="text-teal-400/80">
+          Авторы: Савченков Артем (Frontend / UX) и Алиев Марат (Backend / Git / SecOps)
+        </p>
       </footer>
     </main>
   );
