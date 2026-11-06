@@ -3,221 +3,172 @@
 @tailwind utilities;
 
 /* ============================================================
-   TRUE OPTICAL GLASSMORPHYSYSTEM: OBSIDIAN / FOREST / TURQUOISE
+   MINIMALIST OPTICAL GLASSMORPHYSYSTEM (DARK OBSIDIAN & ARCTIC LIGHT)
+   Clean, restrained, calm. No monochrome neon soup.
    ============================================================ */
 
 :root {
-  /* Dark Hero Palette (Obsidian Pine + Forest Emerald + Alpine Turquoise) */
-  --bg-deep: #030706;
-  --bg-pine-950: #04100c;
-  --bg-pine-900: #081a14;
-  
-  --text-main: #f0fdf4;
-  --text-secondary: #99f6e4;
-  --text-muted: #5eead4;
-  --text-dim: #64748b;
+  /* DARK THEME (Default) */
+  --bg-page: #08090c;
+  --bg-glow-1: rgba(16, 185, 129, 0.08);
+  --bg-glow-2: rgba(20, 184, 166, 0.06);
 
-  /* Glass Material Stack */
-  --glass-surface: linear-gradient(135deg, rgba(6, 28, 22, 0.65) 0%, rgba(4, 18, 14, 0.78) 50%, rgba(2, 10, 8, 0.9) 100%);
-  --glass-surface-elevated: linear-gradient(135deg, rgba(8, 36, 28, 0.75) 0%, rgba(5, 22, 17, 0.85) 50%, rgba(3, 12, 10, 0.95) 100%);
-  
-  --glass-border-top: rgba(255, 255, 255, 0.35);
-  --glass-border-side: rgba(45, 212, 191, 0.22);
-  --glass-border-bottom: rgba(0, 0, 0, 0.55);
+  --text-primary: #ffffff;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
 
-  --glass-specular-glow: inset 0 1px 1px 0 rgba(255, 255, 255, 0.32), inset 0 0 20px 0 rgba(45, 212, 191, 0.08);
-  --glass-shadow-ambient: 0 24px 60px -12px rgba(0, 0, 0, 0.8), 0 0 45px -5px rgba(20, 184, 166, 0.18);
+  --glass-card: rgba(255, 255, 255, 0.035);
+  --glass-card-hover: rgba(255, 255, 255, 0.055);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-border-top: rgba(255, 255, 255, 0.16);
+  --glass-shadow: 0 20px 50px -10px rgba(0, 0, 0, 0.65);
+  --glass-specular: inset 0 1px 1px 0 rgba(255, 255, 255, 0.15);
 
-  /* Inputs & Crystalline Surfaces */
-  --glass-input-bg: rgba(2, 14, 10, 0.6);
-  --glass-input-border: rgba(45, 212, 191, 0.22);
-  --glass-input-focus: #2dd4bf;
+  --input-bg: rgba(255, 255, 255, 0.03);
+  --input-border: rgba(255, 255, 255, 0.09);
+  --input-text: #ffffff;
+  --input-focus: #14b8a6;
+  --input-dropdown-bg: #111318;
 
-  /* Accent Glows */
-  --glow-emerald: 0 0 25px rgba(16, 185, 129, 0.45);
-  --glow-turquoise: 0 0 30px rgba(45, 212, 191, 0.45);
+  --dropzone-bg: rgba(255, 255, 255, 0.015);
+  --dropzone-border: rgba(255, 255, 255, 0.12);
+  --dropzone-hover-bg: rgba(20, 184, 166, 0.04);
+  --dropzone-hover-border: rgba(45, 212, 191, 0.4);
+
+  --subtle-card: rgba(255, 255, 255, 0.025);
+  --subtle-border: rgba(255, 255, 255, 0.06);
+
+  --badge-bg: rgba(20, 184, 166, 0.1);
+  --badge-border: rgba(20, 184, 166, 0.25);
+  --badge-text: #5eead4;
 }
 
 html[data-theme="light"] {
-  /* Arctic Frosted Glass (Clean Ice + Mint + Seafoam) */
-  --bg-deep: #f0fdfa;
-  --bg-pine-950: #e6fffa;
-  --bg-pine-900: #ccfbf1;
-  
-  --text-main: #064e3b;
-  --text-secondary: #0f766e;
-  --text-muted: #115e59;
-  --text-dim: #64748b;
+  /* LIGHT THEME (Clean, airy, perfectly legible, zero white-on-white bugs) */
+  --bg-page: #f8fafc;
+  --bg-glow-1: rgba(16, 185, 129, 0.06);
+  --bg-glow-2: rgba(14, 165, 233, 0.05);
 
-  --glass-surface: linear-gradient(135deg, rgba(255, 255, 255, 0.82) 0%, rgba(240, 253, 250, 0.88) 100%);
-  --glass-surface-elevated: linear-gradient(135deg, rgba(255, 255, 255, 0.92) 0%, rgba(204, 251, 241, 0.85) 100%);
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #94a3b8;
 
-  --glass-border-top: rgba(255, 255, 255, 0.95);
-  --glass-border-side: rgba(45, 212, 191, 0.45);
-  --glass-border-bottom: rgba(15, 118, 110, 0.2);
+  --glass-card: rgba(255, 255, 255, 0.82);
+  --glass-card-hover: rgba(255, 255, 255, 0.95);
+  --glass-border: rgba(226, 232, 240, 0.85);
+  --glass-border-top: rgba(255, 255, 255, 1);
+  --glass-shadow: 0 20px 40px -15px rgba(15, 23, 42, 0.07);
+  --glass-specular: inset 0 1px 1px 0 rgba(255, 255, 255, 0.9);
 
-  --glass-specular-glow: inset 0 1px 2px 0 rgba(255, 255, 255, 0.98), inset 0 0 25px 0 rgba(45, 212, 191, 0.12);
-  --glass-shadow-ambient: 0 20px 45px -10px rgba(13, 148, 136, 0.18);
+  --input-bg: #ffffff;
+  --input-border: #cbd5e1;
+  --input-text: #0f172a;
+  --input-focus: #0d9488;
+  --input-dropdown-bg: #ffffff;
 
-  --glass-input-bg: rgba(255, 255, 255, 0.95);
-  --glass-input-border: rgba(45, 212, 191, 0.4);
-  --glass-input-focus: #0d9488;
+  --dropzone-bg: rgba(248, 250, 252, 0.7);
+  --dropzone-border: #cbd5e1;
+  --dropzone-hover-bg: rgba(20, 184, 166, 0.05);
+  --dropzone-hover-border: #0d9488;
+
+  --subtle-card: #f1f5f9;
+  --subtle-border: #e2e8f0;
+
+  --badge-bg: rgba(13, 148, 136, 0.08);
+  --badge-border: rgba(13, 148, 136, 0.2);
+  --badge-text: #0f766e;
 }
 
 body {
-  background-color: var(--bg-deep);
-  color: var(--text-main);
+  background-color: var(--bg-page);
+  color: var(--text-primary);
   min-height: 100vh;
   position: relative;
   overflow-x: hidden;
-  transition: background-color 0.3s ease, color 0.3s ease;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
-/* 1. ФОНОВЫЙ ТЕХНИЧЕСКИЙ МАТРИЧНЫЙ СЛОЙ (CYBER LAB DOTS) */
-.bg-grid-dots {
-  background-image: radial-gradient(rgba(45, 212, 191, 0.12) 1px, transparent 1px);
-  background-size: 28px 28px;
-}
-
-/* 2. НАСТОЯЩИЙ ОПТИЧЕСКИЙ ГЛАССМОРФИЗМ (CUT-CRYSTAL GLASS) */
+/* 1. ГЛАВНАЯ СТЕКЛЯННАЯ КАРТОЧКА (REFINED MINIMALIST GLASS) */
 .glass-panel {
-  position: relative;
-  background: var(--glass-surface);
-  backdrop-filter: blur(28px) saturate(210%);
-  -webkit-backdrop-filter: blur(28px) saturate(210%);
+  background: var(--glass-card);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
   border-top: 1px solid var(--glass-border-top);
-  border-left: 1px solid var(--glass-border-side);
-  border-right: 1px solid var(--glass-border-side);
-  border-bottom: 1px solid var(--glass-border-bottom);
-  box-shadow: var(--glass-shadow-ambient), var(--glass-specular-glow);
-  border-radius: 1.5rem;
-  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
-              box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1),
-              border-color 0.25s ease;
+  border-left: 1px solid var(--glass-border);
+  border-right: 1px solid var(--glass-border);
+  border-bottom: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow), var(--glass-specular);
+  border-radius: 1.25rem;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
-.glass-panel:hover {
-  border-color: rgba(94, 234, 212, 0.4);
-  box-shadow: 0 30px 70px -15px rgba(0, 0, 0, 0.85),
-              0 0 50px -5px rgba(20, 184, 166, 0.25),
-              var(--glass-specular-glow);
-}
-
-/* Верхняя световая грань (Specular Caustic Line) */
-.glass-specular-line {
-  position: absolute;
-  top: 0;
-  left: 10%;
-  right: 10%;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(94, 234, 212, 0.6) 30%, rgba(255, 255, 255, 0.9) 50%, rgba(45, 212, 191, 0.6) 70%, transparent);
-  pointer-events: none;
-}
-
-/* 3. КРИСТАЛЛИЧЕСКИЕ ПОЛЯ ВВОДА (CRYSTAL INPUTS) */
+/* 2. ПОЛЯ ВВОДА */
 .glass-input {
-  background: var(--glass-input-bg);
-  border: 1px solid var(--glass-input-border);
-  color: var(--text-main);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.4), inset 0 0 12px rgba(45, 212, 191, 0.04);
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  background: var(--input-bg);
+  border: 1px solid var(--input-border);
+  color: var(--input-text);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: 0.75rem;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .glass-input:focus {
-  border-color: var(--glass-input-focus);
-  box-shadow: 0 0 0 3px rgba(45, 212, 191, 0.22),
-              0 0 25px rgba(20, 184, 166, 0.25),
-              inset 0 1px 2px rgba(0, 0, 0, 0.3);
+  border-color: var(--input-focus);
+  box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.18);
   outline: none;
 }
 
-/* 4. ЖИДКАЯ СТЕКЛЯННАЯ КНОПКА (LIQUID EMERALD-TURQUOISE BUTTON) */
-.glass-btn-primary {
-  position: relative;
-  overflow: hidden;
-  background: linear-gradient(135deg, #059669 0%, #0d9488 45%, #06b6d4 100%);
-  color: #ffffff;
-  border-top: 1px solid rgba(255, 255, 255, 0.5);
-  border-left: 1px solid rgba(255, 255, 255, 0.25);
-  border-right: 1px solid rgba(0, 0, 0, 0.2);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.4);
-  box-shadow: 0 12px 35px -5px rgba(13, 148, 136, 0.5),
-              inset 0 1px 1px 0 rgba(255, 255, 255, 0.5),
-              inset 0 -1px 2px 0 rgba(0, 0, 0, 0.3);
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.glass-btn-primary:hover:not(:disabled) {
-  transform: translateY(-2px);
-  background: linear-gradient(135deg, #10b981 0%, #14b8a6 45%, #22d3ee 100%);
-  box-shadow: 0 16px 45px -5px rgba(20, 184, 166, 0.65),
-              0 0 30px rgba(45, 212, 191, 0.4),
-              inset 0 1px 1px 0 rgba(255, 255, 255, 0.7);
-}
-
-.glass-btn-primary:active:not(:disabled) {
-  transform: translateY(0);
-  box-shadow: 0 6px 20px -3px rgba(13, 148, 136, 0.5),
-              inset 0 2px 4px rgba(0, 0, 0, 0.3);
-}
-
-/* Вторичная стеклянная кнопка */
-.glass-btn-secondary {
-  background: rgba(6, 28, 22, 0.6);
-  border: 1px solid rgba(45, 212, 191, 0.25);
-  backdrop-filter: blur(14px);
-  color: #99f6e4;
-  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.15), 0 8px 20px rgba(0, 0, 0, 0.3);
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.glass-btn-secondary:hover {
-  background: rgba(8, 38, 30, 0.8);
-  border-color: rgba(94, 234, 212, 0.5);
-  color: #ffffff;
-  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.3), 0 10px 25px rgba(20, 184, 166, 0.2);
-  transform: translateY(-1px);
-}
-
-/* 5. ИНТЕРАКТИВНАЯ DRAG-AND-DROP ЗОНА (AURORA DROPZONE) */
+/* 3. ЗОНА ЗАГРУЗКИ (AIRY MINIMAL DROPZONE) */
 .glass-dropzone {
-  position: relative;
-  border: 2px dashed rgba(45, 212, 191, 0.3);
-  background: linear-gradient(135deg, rgba(4, 20, 15, 0.45) 0%, rgba(2, 12, 9, 0.6) 100%);
-  backdrop-filter: blur(20px);
-  border-radius: 1.25rem;
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  background: var(--dropzone-bg);
+  border: 1.5px dashed var(--dropzone-border);
+  border-radius: 1rem;
+  transition: all 0.2s ease;
 }
 
 .glass-dropzone:hover {
-  border-color: rgba(94, 234, 212, 0.65);
-  background: linear-gradient(135deg, rgba(6, 28, 22, 0.6) 0%, rgba(4, 18, 14, 0.75) 100%);
-  box-shadow: 0 0 35px -5px rgba(20, 184, 166, 0.25), inset 0 0 20px rgba(45, 212, 191, 0.06);
+  background: var(--dropzone-hover-bg);
+  border-color: var(--dropzone-hover-border);
 }
 
 .glass-dropzone.active {
-  border-color: #2dd4bf;
-  background: linear-gradient(135deg, rgba(13, 148, 136, 0.2) 0%, rgba(4, 24, 18, 0.8) 100%);
-  box-shadow: 0 0 50px rgba(45, 212, 191, 0.45), inset 0 0 30px rgba(45, 212, 191, 0.15);
-  transform: scale(1.01);
+  background: rgba(20, 184, 166, 0.08);
+  border-color: #14b8a6;
+  box-shadow: 0 0 25px rgba(20, 184, 166, 0.15);
 }
 
-/* 6. КАСТОМНЫЙ СКРОЛЛБАР */
+/* 4. КНОПКА ОТПРАВКИ (ELEGANT ACCENT CTA) */
+.btn-cta {
+  background: linear-gradient(135deg, #0d9488 0%, #059669 100%);
+  color: #ffffff;
+  border-top: 1px solid rgba(255, 255, 255, 0.25);
+  box-shadow: 0 10px 25px -5px rgba(13, 148, 136, 0.35);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.btn-cta:hover:not(:disabled) {
+  transform: translateY(-1px);
+  background: linear-gradient(135deg, #14b8a6 0%, #10b981 100%);
+  box-shadow: 0 14px 30px -5px rgba(20, 184, 166, 0.45);
+}
+
+.btn-cta:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+/* Кастомный скроллбар */
 ::-webkit-scrollbar {
-  width: 7px;
-  height: 7px;
+  width: 6px;
+  height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: rgba(3, 12, 10, 0.5);
+  background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(45, 212, 191, 0.3);
+  background: rgba(148, 163, 184, 0.25);
   border-radius: 9999px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(45, 212, 191, 0.55);
-  box-shadow: 0 0 10px rgba(45, 212, 191, 0.5);
+  background: rgba(148, 163, 184, 0.45);
 }
