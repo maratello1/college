@@ -15,7 +15,6 @@ import {
   Search,
   X,
   FileText,
-  ShieldCheck,
   ChevronDown,
   ChevronUp,
 } from "lucide-react";
@@ -42,10 +41,8 @@ interface StatsData {
 }
 
 export default function LabDropPage() {
-  // Тема оформления (Dark / Light)
   const [theme, setTheme] = useState<"dark" | "light">("dark");
 
-  // Состояние формы
   const [student, setStudent] = useState<string>("");
   const [task, setTask] = useState<string>("");
   const [file, setFile] = useState<File | null>(null);
@@ -53,7 +50,6 @@ export default function LabDropPage() {
   const [validationError, setValidationError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
-  // Экран успешной сдачи
   const [submittedData, setSubmittedData] = useState<{
     student: string;
     task: string;
@@ -63,7 +59,6 @@ export default function LabDropPage() {
   } | null>(null);
   const [copyFeedback, setCopyFeedback] = useState<string>("Копировать");
 
-  // Данные дашборда и журнала
   const [submissions, setSubmissions] = useState<SubmissionItem[]>([]);
   const [stats, setStats] = useState<StatsData>({
     total_submissions: 0,
@@ -72,13 +67,11 @@ export default function LabDropPage() {
     percent: 0,
   });
   const [searchQuery, setSearchQuery] = useState<string>("");
-  const [taskFilter, setTaskFilter] = useState<string>("all");
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [showMonitor, setShowMonitor] = useState<boolean>(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Инициализация темы
   useEffect(() => {
     const savedTheme = localStorage.getItem("labdrop_theme") as "dark" | "light" | null;
     if (savedTheme) {
@@ -96,7 +89,6 @@ export default function LabDropPage() {
     localStorage.setItem("labdrop_theme", nextTheme);
   };
 
-  // Загрузка статистики и журнала
   useEffect(() => {
     let isMounted = true;
     const load = async () => {
@@ -126,7 +118,7 @@ export default function LabDropPage() {
           }
         }
       } catch (err) {
-        console.warn("Ошибка обновления данных журнала:", err);
+        console.warn("Ошибка загрузки данных:", err);
       }
     };
 
@@ -169,7 +161,6 @@ export default function LabDropPage() {
     }
   };
 
-  // Валидация файла
   const validateFile = (selectedFile: File): boolean => {
     setValidationError(null);
 
@@ -179,16 +170,14 @@ export default function LabDropPage() {
     }
 
     if (selectedFile.size > MAX_FILE_SIZE_BYTES) {
-      setValidationError("Размер файла превышает допустимые 50 МБ");
+      setValidationError("Размер файла превышает 50 МБ");
       return false;
     }
 
     const nameLower = selectedFile.name.toLowerCase();
     for (const badExt of DANGEROUS_EXTENSIONS) {
       if (nameLower.endsWith(badExt)) {
-        setValidationError(
-          `Файлы "${badExt}" заблокированы из соображений безопасности. Разрешены: ${ALLOWED_EXTENSIONS.join(", ")}`
-        );
+        setValidationError(`Файлы типа "${badExt}" запрещены`);
         return false;
       }
     }
@@ -198,9 +187,7 @@ export default function LabDropPage() {
     const isAllowed = ALLOWED_EXTENSIONS.some((allowed) => allowed === ext);
 
     if (!isAllowed) {
-      setValidationError(
-        `Формат "${ext || "без расширения"}" не поддерживается. Разрешены: ${ALLOWED_EXTENSIONS.join(", ")}`
-      );
+      setValidationError(`Формат "${ext || "без расширения"}" не поддерживается`);
       return false;
     }
 
@@ -217,7 +204,6 @@ export default function LabDropPage() {
     }
   };
 
-  // Drag and Drop
   const onDragOver = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(true);
@@ -243,7 +229,6 @@ export default function LabDropPage() {
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  // Отправка формы
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!student || !task || !file || isSubmitting) return;
@@ -275,10 +260,10 @@ export default function LabDropPage() {
         });
         handleRefresh();
       } else {
-        setValidationError(data.message || "Ошибка при сохранении работы на сервере");
+        setValidationError(data.message || "Ошибка при сохранении файла");
       }
     } catch (_err) {
-      setValidationError("Не удалось связаться с сервером. Проверьте соединение с локальной сетью кабинета.");
+      setValidationError("Не удалось связаться с сервером");
     } finally {
       setIsSubmitting(false);
     }
@@ -311,58 +296,41 @@ export default function LabDropPage() {
     return (bytes / Math.pow(k, i)).toFixed(1) + " " + sizes[i];
   };
 
-  // Фильтрация журнала
   const filteredSubmissions = submissions.filter((item) => {
     const q = searchQuery.toLowerCase().trim();
-    const matchesQuery =
+    return (
       !q ||
       item.student.toLowerCase().includes(q) ||
       item.filename.toLowerCase().includes(q) ||
-      item.task.toLowerCase().includes(q);
-
-    let matchesTask = true;
-    if (taskFilter !== "all") {
-      matchesTask = item.task.includes(`№${taskFilter}`);
-    }
-
-    return matchesQuery && matchesTask;
+      item.task.toLowerCase().includes(q)
+    );
   });
 
   const isFormValid = Boolean(student && task && file && !validationError);
 
   return (
-    <main className="max-w-2xl mx-auto px-4 py-8 sm:py-12 flex flex-col gap-6">
-      {/* 1. МИНИМАЛИСТИЧНЫЙ ХЕДЕР (БЕЗ ТЯЖЕЛЫХ БОКСОВ) */}
+    <main className="max-w-xl mx-auto px-4 py-8 sm:py-12 flex flex-col gap-5">
+      {/* 1. ЧИСТЫЙ МИНИМАЛИСТИЧНЫЙ ХЕДЕР */}
       <header className="flex items-center justify-between gap-4 px-1">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-teal-500/10 dark:bg-teal-400/10 border border-teal-500/20 text-teal-600 dark:text-teal-400 flex items-center justify-center font-bold text-sm">
-            LD
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="font-bold text-slate-900 dark:text-white text-base tracking-tight">
-                LabDrop
-              </span>
-              <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-white/10">
-                1РУП8
-              </span>
-            </div>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              Сдача практических работ в кабинете колледжа
-            </p>
-          </div>
+        <div className="flex items-center gap-2.5">
+          <span className="font-bold text-slate-900 dark:text-white text-lg tracking-tight">
+            LabDrop
+          </span>
+          <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-white/10">
+            1РУП8
+          </span>
         </div>
 
-        <div className="flex items-center gap-2.5">
-          <div className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-100 dark:bg-white/5 text-[11px] text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-white/10">
+        <div className="flex items-center gap-2">
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-100 dark:bg-white/5 text-[11px] text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-white/10">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            Сервер активен
+            Онлайн
           </div>
 
           <button
             onClick={toggleTheme}
-            className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 transition-colors"
-            title="Переключить тему оформления"
+            className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 transition-colors"
+            title="Сменить тему"
             aria-label="Сменить тему"
           >
             {theme === "dark" ? (
@@ -374,18 +342,16 @@ export default function LabDropPage() {
         </div>
       </header>
 
-      {/* 2. ЕДИНАЯ ГЛАВНАЯ СТЕКЛЯННАЯ КАРТОЧКА (БЕЗ ДРОБЛЕНИЯ НА 5 БОКСОВ) */}
+      {/* 2. ОСНОВНАЯ КАРТОЧКА СДАЧИ */}
       {!submittedData ? (
-        <section className="glass-panel p-6 sm:p-8 flex flex-col gap-6">
-          {/* Интегрированная строка скачивания задания */}
-          <div className="flex items-center justify-between gap-4 p-3.5 rounded-xl bg-slate-100/70 dark:bg-white/[0.03] border border-slate-200/80 dark:border-white/5">
-            <div className="flex items-center gap-3">
+        <section className="glass-panel p-5 sm:p-7 flex flex-col gap-5">
+          {/* Скачивание задания к уроку */}
+          <div className="flex items-center justify-between gap-3 p-3 rounded-xl bg-slate-100/70 dark:bg-white/[0.03] border border-slate-200/80 dark:border-white/5">
+            <div className="flex items-center gap-2.5 min-w-0">
               <FileText className="w-4 h-4 text-teal-600 dark:text-teal-400 shrink-0" />
-              <div className="text-xs text-slate-600 dark:text-slate-300">
-                Задание к текущему уроку:{" "}
-                <span className="font-semibold text-slate-900 dark:text-white">zadanie_current.pdf</span>
-                <span className="hidden sm:inline text-slate-400 dark:text-slate-500"> (без входа в мессенджер Макс)</span>
-              </div>
+              <span className="text-xs font-medium text-slate-800 dark:text-slate-200 truncate">
+                Текущее задание: zadanie_current.pdf
+              </span>
             </div>
 
             <a
@@ -398,8 +364,8 @@ export default function LabDropPage() {
             </a>
           </div>
 
-          <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-            {/* Honeypot поле для защиты от спам-ботов */}
+          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+            {/* Honeypot поле для защиты от ботов */}
             <input
               type="text"
               name="middle_name_check"
@@ -409,10 +375,10 @@ export default function LabDropPage() {
             />
 
             {/* Выбор студента и номера работы */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="flex flex-col gap-1.5">
-                <label htmlFor="studentSelect" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                  Студент группы 1РУП8 <span className="text-rose-500">*</span>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="flex flex-col gap-1">
+                <label htmlFor="studentSelect" className="text-xs font-medium text-slate-700 dark:text-slate-300">
+                  Студент <span className="text-rose-500">*</span>
                 </label>
                 <div className="relative">
                   <select
@@ -420,7 +386,7 @@ export default function LabDropPage() {
                     value={student}
                     onChange={(e) => setStudent(e.target.value)}
                     required
-                    className="glass-input w-full h-11 px-3.5 pr-10 text-sm appearance-none outline-none cursor-pointer"
+                    className="glass-input w-full h-10 px-3 pr-8 text-xs sm:text-sm appearance-none outline-none cursor-pointer"
                   >
                     <option value="" disabled className="bg-white dark:bg-slate-900 text-slate-400">
                       — Выберите себя —
@@ -431,13 +397,13 @@ export default function LabDropPage() {
                       </option>
                     ))}
                   </select>
-                  <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                 </div>
               </div>
 
-              <div className="flex flex-col gap-1.5">
-                <label htmlFor="taskSelect" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                  Номер практической работы <span className="text-rose-500">*</span>
+              <div className="flex flex-col gap-1">
+                <label htmlFor="taskSelect" className="text-xs font-medium text-slate-700 dark:text-slate-300">
+                  Практическая работа <span className="text-rose-500">*</span>
                 </label>
                 <div className="relative">
                   <select
@@ -445,25 +411,25 @@ export default function LabDropPage() {
                     value={task}
                     onChange={(e) => setTask(e.target.value)}
                     required
-                    className="glass-input w-full h-11 px-3.5 pr-10 text-sm appearance-none outline-none cursor-pointer"
+                    className="glass-input w-full h-10 px-3 pr-8 text-xs sm:text-sm appearance-none outline-none cursor-pointer"
                   >
                     <option value="" disabled className="bg-white dark:bg-slate-900 text-slate-400">
-                      — Выберите номер —
+                      — Номер работы —
                     </option>
                     {Array.from({ length: 10 }, (_, i) => i + 1).map((num) => (
                       <option key={num} value={String(num)} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">
-                        Практическая работа №{num}
+                        Практическая №{num}
                       </option>
                     ))}
                   </select>
-                  <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                 </div>
               </div>
             </div>
 
             {/* Зона загрузки файла */}
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-medium text-slate-700 dark:text-slate-300">
                 Файл работы <span className="text-rose-500">*</span>
               </label>
 
@@ -472,7 +438,7 @@ export default function LabDropPage() {
                 onDragLeave={onDragLeave}
                 onDrop={onDrop}
                 onClick={() => !file && fileInputRef.current?.click()}
-                className={`glass-dropzone p-6 sm:p-7 text-center cursor-pointer ${
+                className={`glass-dropzone p-5 sm:p-6 text-center cursor-pointer ${
                   isDragging ? "active" : ""
                 } ${validationError ? "border-rose-400/60 bg-rose-500/5" : ""}`}
               >
@@ -489,12 +455,12 @@ export default function LabDropPage() {
                 />
 
                 {!file ? (
-                  <div className="flex flex-col items-center gap-2.5">
-                    <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 flex items-center justify-center text-slate-500 dark:text-slate-300">
-                      <UploadCloud className="w-5 h-5 text-teal-600 dark:text-teal-400" />
+                  <div className="flex flex-col items-center gap-2">
+                    <div className="w-9 h-9 rounded-full bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 flex items-center justify-center text-slate-500 dark:text-slate-300">
+                      <UploadCloud className="w-4 h-4 text-teal-600 dark:text-teal-400" />
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-slate-800 dark:text-slate-200">
+                      <p className="text-xs sm:text-sm font-medium text-slate-800 dark:text-slate-200">
                         Перетащите файл сюда или{" "}
                         <button
                           type="button"
@@ -507,25 +473,25 @@ export default function LabDropPage() {
                           выберите
                         </button>
                       </p>
-                      <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
-                        docx, doc, pdf, py, zip, rar, txt • до 50 МБ
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                        .docx, .pdf, .py, .zip, .rar, .txt (до 50 МБ)
                       </p>
                     </div>
                   </div>
                 ) : (
                   <div className="flex items-center justify-between p-3 rounded-lg bg-white dark:bg-white/[0.04] border border-slate-200 dark:border-white/10">
-                    <div className="flex items-center gap-3 text-left overflow-hidden">
-                      <div className="px-2.5 py-1 rounded bg-teal-500/10 text-teal-700 dark:text-teal-300 font-mono text-xs font-bold border border-teal-500/20">
+                    <div className="flex items-center gap-2.5 text-left overflow-hidden">
+                      <div className="px-2 py-0.5 rounded bg-teal-500/10 text-teal-700 dark:text-teal-300 font-mono text-[11px] font-bold border border-teal-500/20">
                         {file.name.split(".").pop()?.toUpperCase() || "FILE"}
                       </div>
                       <div className="overflow-hidden">
-                        <div className="text-sm font-medium text-slate-900 dark:text-white truncate max-w-[240px] sm:max-w-xs">
+                        <div className="text-xs sm:text-sm font-medium text-slate-900 dark:text-white truncate max-w-[200px] sm:max-w-xs">
                           {file.name}
                         </div>
-                        <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                        <div className="flex items-center gap-2 text-[11px] text-slate-500 dark:text-slate-400">
                           <span>{formatBytes(file.size)}</span>
-                          <span className="text-emerald-600 dark:text-emerald-400 font-medium flex items-center gap-1">
-                            <FileCheck2 className="w-3.5 h-3.5" /> Готов
+                          <span className="text-emerald-600 dark:text-emerald-400 font-medium flex items-center gap-0.5">
+                            <FileCheck2 className="w-3 h-3" /> Готов
                           </span>
                         </div>
                       </div>
@@ -534,7 +500,7 @@ export default function LabDropPage() {
                     <button
                       type="button"
                       onClick={clearFile}
-                      className="p-1.5 rounded-md hover:bg-slate-100 dark:hover:bg-white/10 text-slate-400 hover:text-slate-700 dark:hover:text-white transition-colors"
+                      className="p-1 rounded hover:bg-slate-100 dark:hover:bg-white/10 text-slate-400 hover:text-slate-700 dark:hover:text-white transition-colors"
                       title="Удалить"
                     >
                       <X className="w-4 h-4" />
@@ -552,19 +518,11 @@ export default function LabDropPage() {
               )}
             </div>
 
-            {/* Подсказка автоименования */}
-            <div className="text-[11px] text-slate-500 dark:text-slate-400 text-center">
-              Имя файла на сервере сформируется автоматически:{" "}
-              <span className="font-mono text-slate-700 dark:text-slate-300">
-                1RUP8_Фамилия_Работа№.ext
-              </span>
-            </div>
-
             {/* Кнопка отправки */}
             <button
               type="submit"
               disabled={!isFormValid || isSubmitting}
-              className={`w-full py-3.5 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-all ${
+              className={`w-full py-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-all ${
                 isFormValid && !isSubmitting
                   ? "btn-cta cursor-pointer"
                   : "bg-slate-200 dark:bg-white/5 text-slate-400 dark:text-slate-500 border border-slate-300/50 dark:border-white/5 cursor-not-allowed"
@@ -585,40 +543,38 @@ export default function LabDropPage() {
           </form>
         </section>
       ) : (
-        /* 3. ЭКРАН ПОДТВЕРЖДЕНИЯ СДАЧИ */
-        <section className="glass-panel p-6 sm:p-8 text-center flex flex-col items-center">
-          <div className="w-14 h-14 rounded-full bg-emerald-500/10 border border-emerald-500/25 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mb-3">
-            <CheckCircle2 className="w-7 h-7" />
+        /* 3. КВИТАНЦИЯ ОБ УСПЕШНОЙ СДАЧЕ */
+        <section className="glass-panel p-6 sm:p-7 text-center flex flex-col items-center">
+          <div className="w-12 h-12 rounded-full bg-emerald-500/10 border border-emerald-500/25 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mb-2.5">
+            <CheckCircle2 className="w-6 h-6" />
           </div>
 
-          <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">
+          <h2 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white">
             Работа успешно принята
           </h2>
-          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
-            Зарегистрирована в журнале преподавателя.
-          </p>
 
-          <div className="w-full max-w-md bg-slate-100/70 dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 rounded-xl p-4 my-5 flex flex-col gap-2.5 text-left text-xs sm:text-sm">
+          <div className="w-full max-w-sm bg-slate-100/70 dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 rounded-xl p-3.5 my-4 flex flex-col gap-2 text-left text-xs">
             <div className="flex justify-between py-1 border-b border-slate-200 dark:border-white/5">
               <span className="text-slate-500 dark:text-slate-400">Студент:</span>
-              <strong className="text-slate-900 dark:text-white font-medium">{submittedData.student}</strong>
+              <strong className="text-slate-900 dark:text-white">{submittedData.student}</strong>
             </div>
 
             <div className="flex justify-between py-1 border-b border-slate-200 dark:border-white/5">
               <span className="text-slate-500 dark:text-slate-400">Задание:</span>
-              <strong className="text-slate-900 dark:text-white font-medium">{submittedData.task}</strong>
+              <strong className="text-slate-900 dark:text-white">{submittedData.task}</strong>
             </div>
 
             <div className="flex justify-between items-center py-1 border-b border-slate-200 dark:border-white/5">
-              <span className="text-slate-500 dark:text-slate-400">Имя на сервере:</span>
-              <div className="flex items-center gap-2">
-                <code className="font-mono text-xs text-teal-700 dark:text-teal-300 bg-teal-500/10 px-2 py-0.5 rounded">
+              <span className="text-slate-500 dark:text-slate-400">Сохранено как:</span>
+              <div className="flex items-center gap-1.5">
+                <code className="font-mono text-[11px] text-teal-700 dark:text-teal-300 bg-teal-500/10 px-1.5 py-0.5 rounded">
                   {submittedData.filename}
                 </code>
                 <button
                   type="button"
                   onClick={handleCopyFilename}
-                  className="px-2 py-0.5 rounded bg-white dark:bg-white/10 border border-slate-200 dark:border-white/10 text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/15"
+                  className="p-1 rounded bg-white dark:bg-white/10 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/15"
+                  title="Скопировать имя"
                 >
                   <Copy className="w-3 h-3" />
                 </button>
@@ -626,8 +582,8 @@ export default function LabDropPage() {
             </div>
 
             <div className="flex justify-between py-1 border-b border-slate-200 dark:border-white/5">
-              <span className="text-slate-500 dark:text-slate-400">Время сдачи:</span>
-              <span className="font-mono font-medium text-slate-900 dark:text-white">{submittedData.time}</span>
+              <span className="text-slate-500 dark:text-slate-400">Время:</span>
+              <span className="font-mono text-slate-900 dark:text-white">{submittedData.time}</span>
             </div>
 
             <div className="flex justify-between py-1">
@@ -639,102 +595,88 @@ export default function LabDropPage() {
           <button
             type="button"
             onClick={handleResetForm}
-            className="px-5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-white/10 dark:hover:bg-white/15 border border-slate-200 dark:border-white/10 text-slate-800 dark:text-slate-200 text-xs font-semibold transition-all"
+            className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-white/10 dark:hover:bg-white/15 border border-slate-200 dark:border-white/10 text-slate-800 dark:text-slate-200 text-xs font-semibold transition-all"
           >
             Сдать еще одну работу
           </button>
         </section>
       )}
 
-      {/* 4. АККУРАТНЫЙ ЖУРНАЛ / СВОДКА (БЕЗ ПЕРЕГРУЗКИ) */}
-      <section className="glass-panel p-4 sm:p-5 flex flex-col gap-3">
-        <div className="flex items-center justify-between flex-wrap gap-2">
-          <div className="flex items-center gap-2 text-xs">
-            <span className="font-semibold text-slate-900 dark:text-white">Журнал 1РУП8:</span>
-            <span className="text-slate-500 dark:text-slate-400">
-              Сдали <strong className="text-teal-700 dark:text-teal-300">{stats.unique_students}</strong> из {stats.group_size} ({stats.percent}%)
-            </span>
+      {/* 4. МИНИМАЛИСТИЧНАЯ СТРОКА ЖУРНАЛА */}
+      <section className="glass-panel p-3.5 sm:p-4 flex flex-col gap-2.5">
+        <div className="flex items-center justify-between gap-2 text-xs">
+          <div className="flex items-center gap-1.5 text-slate-600 dark:text-slate-300">
+            <span>Сдано:</span>
+            <strong className="text-slate-900 dark:text-white font-semibold">{stats.unique_students}</strong>
+            <span className="text-slate-400 dark:text-slate-500">из {stats.group_size} ({stats.percent}%)</span>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             <button
               onClick={() => setShowMonitor(!showMonitor)}
-              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-white/10 transition-colors"
+              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-white/10 transition-colors"
             >
-              <span>{showMonitor ? "Скрыть список" : "Показать список"}</span>
-              {showMonitor ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+              <span>{showMonitor ? "Скрыть" : "Список"}</span>
+              {showMonitor ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
             </button>
 
             <a
               href="/api/download-log"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-teal-500/10 text-teal-700 dark:text-teal-300 border border-teal-500/20 hover:bg-teal-500/20 transition-colors"
+              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium bg-teal-500/10 text-teal-700 dark:text-teal-300 border border-teal-500/20 hover:bg-teal-500/20 transition-colors"
+              title="Скачать журнал сдачи"
             >
-              <FileSpreadsheet className="w-3.5 h-3.5" />
+              <FileSpreadsheet className="w-3 h-3" />
               <span>CSV</span>
             </a>
           </div>
         </div>
 
-        {/* Раскрывающийся список сданных работ */}
+        {/* Раскрывающийся список */}
         {showMonitor && (
-          <div className="pt-3 border-t border-slate-200/80 dark:border-white/5 flex flex-col gap-3">
-            <div className="flex items-center gap-2">
-              <div className="relative flex-1">
-                <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Поиск по фамилии..."
-                  className="glass-input w-full h-9 pl-9 pr-3 text-xs outline-none"
-                />
-              </div>
-
-              <button
-                onClick={handleRefresh}
-                className="p-2 rounded-lg bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-white/10"
-                title="Обновить"
-              >
-                <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? "animate-spin" : ""}`} />
-              </button>
+          <div className="pt-2.5 border-t border-slate-200/80 dark:border-white/5 flex flex-col gap-2">
+            <div className="relative">
+              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Поиск по фамилии..."
+                className="glass-input w-full h-8 pl-8 pr-2.5 text-xs outline-none"
+              />
             </div>
 
-            <div className="overflow-x-auto rounded-lg border border-slate-200 dark:border-white/10">
+            <div className="overflow-x-auto rounded-lg border border-slate-200 dark:border-white/10 max-h-56 overflow-y-auto">
               <table className="w-full text-left text-xs">
-                <thead className="bg-slate-50 dark:bg-white/[0.02] text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-white/10 font-semibold">
+                <thead className="bg-slate-50 dark:bg-white/[0.02] text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-white/10 sticky top-0 font-medium">
                   <tr>
-                    <th className="py-2.5 px-3">Студент</th>
-                    <th className="py-2.5 px-3">Задание</th>
-                    <th className="py-2.5 px-3">Файл на сервере</th>
-                    <th className="py-2.5 px-3">Время</th>
-                    <th className="py-2.5 px-3 text-right">Размер</th>
+                    <th className="py-1.5 px-2.5">Студент</th>
+                    <th className="py-1.5 px-2.5">Работа</th>
+                    <th className="py-1.5 px-2.5">Файл</th>
+                    <th className="py-1.5 px-2.5 text-right">Время</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200 dark:divide-white/5">
                   {filteredSubmissions.length > 0 ? (
                     filteredSubmissions.map((item, idx) => (
                       <tr key={idx} className="hover:bg-slate-50/50 dark:hover:bg-white/[0.02]">
-                        <td className="py-2.5 px-3 font-medium text-slate-900 dark:text-white">
+                        <td className="py-1.5 px-2.5 font-medium text-slate-900 dark:text-white">
                           {item.student}
                         </td>
-                        <td className="py-2.5 px-3 text-slate-600 dark:text-slate-300">
+                        <td className="py-1.5 px-2.5 text-slate-600 dark:text-slate-300">
                           {item.task}
                         </td>
-                        <td className="py-2.5 px-3 font-mono text-teal-700 dark:text-teal-300">
+                        <td className="py-1.5 px-2.5 font-mono text-teal-700 dark:text-teal-300 truncate max-w-[150px]">
                           {item.filename}
                         </td>
-                        <td className="py-2.5 px-3 text-slate-500 dark:text-slate-400 font-mono">
+                        <td className="py-1.5 px-2.5 text-right text-slate-400 font-mono">
                           {item.datetime.slice(11, 16)}
-                        </td>
-                        <td className="py-2.5 px-3 text-right text-slate-500 dark:text-slate-400">
-                          {item.size_kb} КБ
                         </td>
                       </tr>
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={5} className="py-6 text-center text-slate-400">
-                        {searchQuery ? "Ничего не найдено" : "Сданных работ пока нет"}
+                      <td colSpan={4} className="py-4 text-center text-slate-400">
+                        {searchQuery ? "Не найдено" : "Сданных работ пока нет"}
                       </td>
                     </tr>
                   )}
@@ -744,12 +686,6 @@ export default function LabDropPage() {
           </div>
         )}
       </section>
-
-      {/* 5. АККУРАТНЫЙ ФУТЕР */}
-      <footer className="text-center text-xs text-slate-400 dark:text-slate-500 pt-2 flex flex-col gap-1">
-        <p>Авторы проекта: Савченков Артем и Алиев Марат (группа 1РУП8)</p>
-        <p className="text-[11px] text-slate-400/80">Компьютерный кабинет колледжа • Без личных аккаунтов</p>
-      </footer>
     </main>
   );
 }
