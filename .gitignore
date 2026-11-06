@@ -25,6 +25,11 @@ __pycache__/
 env/
 venv/
 
+# Runtime data
+tokens.json
+uploads/*
+!uploads/.gitkeep
+
 # OS
 .DS_Store
 Thumbs.db

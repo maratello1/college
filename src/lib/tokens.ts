@@ -3,6 +3,8 @@ import path from "path";
 import { STUDENTS_1RUP8 } from "./constants";
 
 export const TEACHER_DEFAULT_PIN = "1rup8";
+export const TEACHER_DEFAULT_LOGIN = "teacher";
+export const TEACHER_DEFAULT_PASSWORD = "1rup8";
 
 const TOKENS_FILE = path.join(process.cwd(), "tokens.json");
 
@@ -17,6 +19,7 @@ export interface StudentTokenItem {
 export interface TokensSession {
   is_active: boolean;
   is_locked: boolean;
+  deadline_timestamp?: number | null;
   created_at: string | null;
   tokens: Record<string, StudentTokenItem>;
 }
@@ -39,6 +42,7 @@ export function getTokensState(): TokensSession {
   return {
     is_active: false,
     is_locked: false,
+    deadline_timestamp: null,
     created_at: null,
     tokens: {},
   };
@@ -79,6 +83,7 @@ export function generateAllTokens(): TokensSession {
   const newState: TokensSession = {
     is_active: true,
     is_locked: false,
+    deadline_timestamp: null,
     created_at: timeStr,
     tokens: tokensRecord,
   };
@@ -137,6 +142,16 @@ export function verifyAndConsumeToken(
     };
   }
 
+  // Если время по таймеру истекло
+  if (state.deadline_timestamp && Date.now() > state.deadline_timestamp) {
+    state.is_locked = true;
+    saveTokensState(state);
+    return {
+      valid: false,
+      error: "Время сдачи истекло (дедлайн урока завершен)",
+    };
+  }
+
   const studentData = state.tokens[studentName];
   if (!studentData) {
     return {
@@ -190,11 +205,24 @@ export function toggleSessionLock(locked?: boolean): TokensSession {
   return state;
 }
 
-// 5. Сброс сессии
+// 5. Установка таймера обратного отсчета урока
+export function setSessionTimer(minutes: number | null): TokensSession {
+  const state = getTokensState();
+  if (minutes && minutes > 0) {
+    state.deadline_timestamp = Date.now() + minutes * 60 * 1000;
+  } else {
+    state.deadline_timestamp = null;
+  }
+  saveTokensState(state);
+  return state;
+}
+
+// 6. Сброс сессии
 export function resetTokensSession(): TokensSession {
   const newState: TokensSession = {
     is_active: false,
     is_locked: false,
+    deadline_timestamp: null,
     created_at: null,
     tokens: {},
   };

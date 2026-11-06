@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import QRCode from "qrcode";
 import {
   UploadCloud,
   FileCheck2,
@@ -22,6 +23,13 @@ import {
   Unlock,
   Monitor,
   Check,
+  Clock,
+  QrCode,
+  Eye,
+  Smartphone,
+  Volume2,
+  VolumeX,
+  Sparkles,
 } from "lucide-react";
 import {
   STUDENTS_1RUP8,
@@ -56,6 +64,7 @@ interface TokenItem {
 interface TokensSession {
   is_active: boolean;
   is_locked: boolean;
+  deadline_timestamp?: number | null;
   created_at: string | null;
   tokens: Record<string, TokenItem>;
 }
@@ -75,14 +84,39 @@ export default function LabDropPage() {
   const [tokensActive, setTokensActive] = useState<boolean>(false);
   const [tokensLocked, setTokensLocked] = useState<boolean>(false);
 
-  // Модалка преподавателя
+  // Модалка преподавателя (Логин + Пароль)
   const [showTeacherModal, setShowTeacherModal] = useState<boolean>(false);
+  const [teacherLogin, setTeacherLogin] = useState<string>("teacher");
+  const [teacherPassword, setTeacherPassword] = useState<string>("");
   const [teacherPin, setTeacherPin] = useState<string>("");
   const [isTeacherAuthed, setIsTeacherAuthed] = useState<boolean>(false);
   const [teacherSession, setTeacherSession] = useState<TokensSession | null>(null);
   const [teacherError, setTeacherError] = useState<string | null>(null);
   const [teacherSuccess, setTeacherSuccess] = useState<string | null>(null);
   const [showProjectorMode, setShowProjectorMode] = useState<boolean>(false);
+  const [teacherTab, setTeacherTab] = useState<"all" | "pending" | "done">("all");
+
+  // Таймер дедлайна пары
+  const [deadlineTimestamp, setDeadlineTimestamp] = useState<number | null>(null);
+  const [timeLeft, setTimeLeft] = useState<string | null>(null);
+
+  // QR-код модалка (Сдача со смартфона)
+  const [showQrModal, setShowQrModal] = useState<boolean>(false);
+  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
+
+  // QuickView модалка просмотра кода/текста без скачивания
+  const [showQuickViewModal, setShowQuickViewModal] = useState<boolean>(false);
+  const [quickViewFile, setQuickViewFile] = useState<{
+    filename: string;
+    content: string;
+    lines: number;
+    ext: string;
+  } | null>(null);
+  const [quickViewLoading, setQuickViewLoading] = useState<boolean>(false);
+
+  // Уведомление о вставке из буфера и звук
+  const [pasteToast, setPasteToast] = useState<string | null>(null);
+  const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
 
   // Экран успешной сдачи
   const [submittedData, setSubmittedData] = useState<{
@@ -161,6 +195,7 @@ export default function LabDropPage() {
           if (tokensJson.status === "ok") {
             setTokensActive(Boolean(tokensJson.is_active));
             setTokensLocked(Boolean(tokensJson.is_locked));
+            setDeadlineTimestamp(tokensJson.deadline_timestamp || null);
           }
         }
       } catch (err) {
@@ -169,12 +204,132 @@ export default function LabDropPage() {
     };
 
     load();
-    const interval = setInterval(load, 15000);
+    const interval = setInterval(load, 10000);
     return () => {
       isMounted = false;
       clearInterval(interval);
     };
   }, []);
+
+  // 1. АВТО-ЗАПОЛНЕНИЕ ИЗ URL ПАРАМЕТРОВ (?student=...&task=...)
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const stParam = params.get("student");
+    const taskParam = params.get("task");
+    if (stParam && (STUDENTS_1RUP8 as readonly string[]).includes(stParam)) {
+      setStudent(stParam);
+    }
+    if (taskParam) {
+      setTask(taskParam);
+    }
+  }, []);
+
+  // 2. СИНХРОНИЗИРОВАННЫЙ ОБРАТНЫЙ ОТСЧЕТ ДЕДЛАЙНА УРОКА
+  useEffect(() => {
+    if (!deadlineTimestamp) {
+      setTimeLeft(null);
+      return;
+    }
+
+    const tick = () => {
+      const now = Date.now();
+      const diff = deadlineTimestamp - now;
+      if (diff <= 0) {
+        setTimeLeft("00:00 (Звонок)");
+        setTokensLocked(true);
+      } else {
+        const totalSec = Math.floor(diff / 1000);
+        const mins = Math.floor(totalSec / 60);
+        const secs = totalSec % 60;
+        setTimeLeft(`${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`);
+      }
+    };
+
+    tick();
+    const timerId = setInterval(tick, 1000);
+    return () => clearInterval(timerId);
+  }, [deadlineTimestamp]);
+
+  // 3. ЗВУКОВОЙ ОТКЛИК УСПЕШНОЙ СДАЧИ (WEB AUDIO API AIRDROP CHIME)
+  const playSuccessChime = () => {
+    if (!soundEnabled) return;
+    try {
+      const AudioCtx =
+        window.AudioContext ||
+        (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      const now = ctx.currentTime;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(587.33, now); // D5
+      osc.frequency.exponentialRampToValueAtTime(880, now + 0.1); // A5
+      gain.gain.setValueAtTime(0.12, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.45);
+    } catch {
+      // browser audio guard
+    }
+  };
+
+  // 4. ГЕНЕРАЦИЯ QR-КОДА ДЛЯ СДАЧИ СО СМАРТФОНА БЕЗ ПРОВОДОВ
+  const handleOpenQrModal = async () => {
+    try {
+      const currentUrl = window.location.href.split("?")[0];
+      const dataUrl = await QRCode.toDataURL(currentUrl, {
+        margin: 1,
+        width: 280,
+        color: {
+          dark: "#090a0f",
+          light: "#ffffff",
+        },
+      });
+      setQrDataUrl(dataUrl);
+      setShowQrModal(true);
+    } catch (err) {
+      console.error("QR Code error:", err);
+    }
+  };
+
+  // 5. БЫСТРЫЙ ПРОСМОТР КОДА И ТЕКСТА БЕЗ СКАЧИВАНИЯ (QUICKVIEW)
+  const handleOpenQuickView = async (filename: string) => {
+    setQuickViewLoading(true);
+    setQuickViewFile(null);
+    setShowQuickViewModal(true);
+    try {
+      const res = await fetch(`/api/view-file?filename=${encodeURIComponent(filename)}`);
+      const data = await res.json();
+      if (res.ok && data.status === "ok") {
+        setQuickViewFile({
+          filename: data.filename,
+          content: data.content,
+          lines: data.lines_count,
+          ext: data.ext,
+        });
+      } else {
+        setQuickViewFile({
+          filename,
+          content: data.message || "Не удалось загрузить предпросмотр файла",
+          lines: 1,
+          ext: "",
+        });
+      }
+    } catch {
+      setQuickViewFile({
+        filename,
+        content: "Ошибка связи с сервером при чтении файла",
+        lines: 1,
+        ext: "",
+      });
+    } finally {
+      setQuickViewLoading(false);
+    }
+  };
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -206,6 +361,7 @@ export default function LabDropPage() {
         if (tokensJson.status === "ok") {
           setTokensActive(Boolean(tokensJson.is_active));
           setTokensLocked(Boolean(tokensJson.is_locked));
+          setDeadlineTimestamp(tokensJson.deadline_timestamp || null);
         }
       }
     } catch (e) {
@@ -315,6 +471,7 @@ export default function LabDropPage() {
       const data = await res.json();
 
       if (res.ok && data.status === "ok") {
+        playSuccessChime();
         setSubmittedData({
           student: data.student,
           task: data.task,
@@ -333,6 +490,61 @@ export default function LabDropPage() {
       setIsSubmitting(false);
     }
   };
+
+  // ВСТАВКА ФАЙЛА ИЛИ СКРИНШОТА ИЗ БУФЕРА ОБМЕНА (CTRL+V)
+  useEffect(() => {
+    const handlePaste = (e: ClipboardEvent) => {
+      if (!e.clipboardData) return;
+      const items = e.clipboardData.items;
+      for (let i = 0; i < items.length; i++) {
+        if (items[i].kind === "file") {
+          const pasted = items[i].getAsFile();
+          if (pasted) {
+            let finalFile = pasted;
+            if (pasted.name === "image.png" || !pasted.name.includes(".")) {
+              const ext = pasted.type === "image/png" ? ".png" : ".jpg";
+              finalFile = new File([pasted], `screenshot_${Date.now()}${ext}`, { type: pasted.type });
+            }
+            handleFileChange(finalFile);
+            setPasteToast("Файл из буфера обмена успешно прикреплен");
+            setTimeout(() => setPasteToast(null), 3000);
+            break;
+          }
+        }
+      }
+    };
+
+    window.addEventListener("paste", handlePaste);
+    return () => window.removeEventListener("paste", handlePaste);
+  }, []);
+
+  // КЛАВИАТУРНЫЕ ХОТКЕИ (ESCAPE ДЛЯ ЗАКРЫТИЯ МОДАЛОК, CTRL+ENTER ДЛЯ ОТПРАВКИ)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setShowTeacherModal(false);
+        setShowQuickViewModal(false);
+        setShowQrModal(false);
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+        if (
+          student &&
+          task &&
+          file &&
+          (!tokensActive || token.trim().length >= 4) &&
+          !validationError &&
+          !isSubmitting &&
+          !tokensLocked
+        ) {
+          const fakeE = { preventDefault: () => {} } as React.FormEvent;
+          handleSubmit(fakeE);
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [student, task, file, token, tokensActive, validationError, isSubmitting, tokensLocked]);
 
   const handleResetForm = () => {
     setSubmittedData(null);
@@ -355,7 +567,7 @@ export default function LabDropPage() {
   };
 
   // ==========================================
-  // ЛОГИКА ПАНЕЛИ ПРЕПОДАВАТЕЛЯ (УПРАВЛЕНИЕ ТОКЕНАМИ)
+  // ЛОГИКА ПАНЕЛИ ПРЕПОДАВАТЕЛЯ (УПРАВЛЕНИЕ ТОКЕНАМИ, ЛОГИН + ПАРОЛЬ)
   // ==========================================
   const handleTeacherAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -364,7 +576,12 @@ export default function LabDropPage() {
       const res = await fetch("/api/tokens", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pin: teacherPin.trim(), action: "verify_pin" }),
+        body: JSON.stringify({
+          login: teacherLogin.trim(),
+          password: teacherPassword.trim(),
+          pin: teacherPassword.trim() || teacherPin.trim(),
+          action: "login",
+        }),
       });
       const data = await res.json();
       if (res.ok && data.status === "ok") {
@@ -372,15 +589,20 @@ export default function LabDropPage() {
         setTeacherSession(data.session);
         setTokensActive(Boolean(data.session?.is_active));
         setTokensLocked(Boolean(data.session?.is_locked));
+        setDeadlineTimestamp(data.session?.deadline_timestamp || null);
       } else {
-        setTeacherError(data.message || "Неверный пароль");
+        setTeacherError(data.message || "Неверный логин или пароль");
       }
     } catch {
       setTeacherError("Ошибка связи с сервером");
     }
   };
 
-  const executeTeacherAction = async (action: string, targetStudent?: string) => {
+  const executeTeacherAction = async (
+    action: string,
+    targetStudent?: string,
+    minutes?: number | null
+  ) => {
     setTeacherError(null);
     setTeacherSuccess(null);
     try {
@@ -388,9 +610,12 @@ export default function LabDropPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          pin: teacherPin.trim(),
+          login: teacherLogin.trim(),
+          password: teacherPassword.trim(),
+          pin: teacherPassword.trim() || teacherPin.trim(),
           action,
           student: targetStudent,
+          minutes,
         }),
       });
       const data = await res.json();
@@ -398,6 +623,7 @@ export default function LabDropPage() {
         setTeacherSession(data.session);
         setTokensActive(Boolean(data.session?.is_active));
         setTokensLocked(Boolean(data.session?.is_locked));
+        setDeadlineTimestamp(data.session?.deadline_timestamp || null);
         setTeacherSuccess(data.message);
         setTimeout(() => setTeacherSuccess(null), 3000);
       } else {
@@ -481,7 +707,39 @@ export default function LabDropPage() {
           )}
         </div>
 
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-2">
+          {/* Таймер урока (если задан преподавателем) */}
+          {timeLeft && (
+            <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 text-[11px] font-mono">
+              <Clock className="w-3 h-3 animate-pulse" />
+              <span>{timeLeft}</span>
+            </div>
+          )}
+
+          {/* Кнопка сдачи со смартфона через QR */}
+          <button
+            onClick={handleOpenQrModal}
+            className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-white/[0.06] text-slate-500 dark:text-slate-400 hover:text-teal-600 dark:hover:text-teal-400 transition-colors"
+            title="Сдать со смартфона (QR-код)"
+            aria-label="QR-код для телефона"
+          >
+            <Smartphone className="w-4 h-4" />
+          </button>
+
+          {/* Переключатель звука подтверждения */}
+          <button
+            onClick={() => setSoundEnabled(!soundEnabled)}
+            className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-white/[0.06] text-slate-500 dark:text-slate-400 transition-colors"
+            title={soundEnabled ? "Звук включен" : "Звук выключен"}
+            aria-label="Переключить звук"
+          >
+            {soundEnabled ? (
+              <Volume2 className="w-4 h-4 text-teal-500" />
+            ) : (
+              <VolumeX className="w-4 h-4 text-slate-400" />
+            )}
+          </button>
+
           <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] text-slate-500 dark:text-slate-400">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
             Онлайн
@@ -501,6 +759,14 @@ export default function LabDropPage() {
           </button>
         </div>
       </header>
+
+      {/* Всплывающее уведомление о вставке из буфера (Ctrl+V) */}
+      {pasteToast && (
+        <div className="fixed top-4 right-4 z-50 flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-xl border border-white/10 text-xs font-medium animate-in fade-in slide-in-from-top-2 duration-200">
+          <Sparkles className="w-3.5 h-3.5 text-teal-400 dark:text-teal-600" />
+          <span>{pasteToast}</span>
+        </div>
+      )}
 
       {/* 2. ОСНОВНАЯ КАРТОЧКА СДАЧИ (MINIMALIST OBSIDIAN) */}
       {!submittedData ? (
@@ -763,6 +1029,16 @@ export default function LabDropPage() {
                 <code className="font-mono text-[11px] text-teal-600 dark:text-teal-400 bg-teal-500/10 px-1.5 py-0.5 rounded">
                   {submittedData.filename}
                 </code>
+                {submittedData.filename.match(/\.(py|txt|csv|json|md|html)$/i) && (
+                  <button
+                    type="button"
+                    onClick={() => handleOpenQuickView(submittedData.filename)}
+                    className="p-1 rounded hover:bg-slate-100 dark:hover:bg-white/10 text-teal-600 dark:text-teal-400"
+                    title="Быстрый просмотр кода"
+                  >
+                    <Eye className="w-3 h-3" />
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={handleCopyFilename}
@@ -864,7 +1140,18 @@ export default function LabDropPage() {
                           {item.task}
                         </td>
                         <td className="py-1.5 px-2.5 font-mono text-teal-700 dark:text-teal-300 truncate max-w-[150px]">
-                          {item.filename}
+                          <div className="flex items-center gap-1.5">
+                            <span className="truncate">{item.filename}</span>
+                            {item.filename.match(/\.(py|txt|csv|json|md|html)$/i) && (
+                              <button
+                                onClick={() => handleOpenQuickView(item.filename)}
+                                className="p-0.5 rounded hover:bg-teal-500/20 text-teal-600 dark:text-teal-400 shrink-0"
+                                title="Быстрый просмотр кода в браузере"
+                              >
+                                <Eye className="w-3 h-3" />
+                              </button>
+                            )}
+                          </div>
                         </td>
                         <td className="py-1.5 px-2.5 text-right text-slate-400 font-mono">
                           {item.datetime.slice(11, 16)}
@@ -885,10 +1172,10 @@ export default function LabDropPage() {
         )}
       </footer>
 
-      {/* 5. МОДАЛЬНОЕ ОКНО ПРЕПОДАВАТЕЛЯ (УПРАВЛЕНИЕ ТОКЕНАМИ) */}
+      {/* 5. МОДАЛЬНОЕ ОКНО ПРЕПОДАВАТЕЛЯ (УПРАВЛЕНИЕ ТОКЕНАМИ, ТАЙМЕРОМ И ПРИЕМОМ) */}
       {showTeacherModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="glass-panel w-full max-w-lg p-5 sm:p-6 flex flex-col gap-4 max-h-[90vh] overflow-y-auto">
+          <div className="glass-panel w-full max-w-xl p-5 sm:p-6 flex flex-col gap-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-slate-200 dark:border-white/10 pb-3">
               <div className="flex items-center gap-2.5">
                 <img
@@ -899,7 +1186,7 @@ export default function LabDropPage() {
                   className="w-6 h-6 object-contain"
                 />
                 <h3 className="font-bold text-slate-900 dark:text-white text-base">
-                  Управление токенами сдачи
+                  Панель преподавателя
                 </h3>
               </div>
               <button
@@ -910,33 +1197,45 @@ export default function LabDropPage() {
               </button>
             </div>
 
-            {/* Авторизация по PIN преподавателя */}
+            {/* Авторизация: Логин + Пароль */}
             {!isTeacherAuthed ? (
               <form onSubmit={handleTeacherAuth} className="flex flex-col gap-3 py-2">
                 <p className="text-xs text-slate-600 dark:text-slate-300">
-                  Введите пароль преподавателя для доступа к генерации и просмотру кодов:
+                  Вход для преподавателя. Управление одноразовыми кодами сдачи, таймером пары и фильтрацией студентов:
                 </p>
-                <div className="flex gap-2">
+                <div className="flex flex-col sm:flex-row gap-2">
                   <input
-                    type="password"
-                    value={teacherPin}
-                    onChange={(e) => setTeacherPin(e.target.value)}
-                    placeholder="PIN преподавателя (1rup8)"
+                    type="text"
+                    value={teacherLogin}
+                    onChange={(e) => setTeacherLogin(e.target.value)}
+                    placeholder="Логин (teacher)"
                     className="glass-input flex-1 h-10 px-3 text-sm outline-none"
                     autoFocus
                   />
-                  <button type="submit" className="btn-cta px-4 rounded-xl text-xs font-semibold">
+                  <input
+                    type="password"
+                    value={teacherPassword}
+                    onChange={(e) => setTeacherPassword(e.target.value)}
+                    placeholder="Пароль (1rup8)"
+                    className="glass-input flex-1 h-10 px-3 text-sm outline-none"
+                  />
+                  <button type="submit" className="btn-cta px-5 h-10 rounded-xl text-xs font-semibold whitespace-nowrap">
                     Войти
                   </button>
                 </div>
+                <div className="flex items-center justify-between text-[11px] text-slate-400">
+                  <span>
+                    По умолчанию: логин <code className="text-teal-600 dark:text-teal-400 font-mono">teacher</code>, пароль <code className="text-teal-600 dark:text-teal-400 font-mono">1rup8</code>
+                  </span>
+                </div>
                 {teacherError && (
-                  <p className="text-xs text-rose-500">{teacherError}</p>
+                  <p className="text-xs text-rose-500 font-medium">{teacherError}</p>
                 )}
               </form>
             ) : (
               /* Панель управления после авторизации */
               <div className="flex flex-col gap-4">
-                {/* Статус сессии и кнопки управления */}
+                {/* 1. Статус сессии и кнопки управления */}
                 <div className="flex items-center justify-between flex-wrap gap-2 text-xs">
                   <div className="flex items-center gap-1.5">
                     <span className="text-slate-500 dark:text-slate-400">Статус:</span>
@@ -957,7 +1256,7 @@ export default function LabDropPage() {
                     </span>
                   </div>
 
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex items-center gap-1.5 flex-wrap">
                     <button
                       onClick={() => executeTeacherAction("toggle_lock")}
                       className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/15 text-slate-700 dark:text-slate-300 transition-colors"
@@ -984,10 +1283,62 @@ export default function LabDropPage() {
                       <Monitor className="w-3 h-3" />
                       <span>Проектор</span>
                     </button>
+
+                    <button
+                      onClick={handleOpenQrModal}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/15 text-slate-700 dark:text-slate-300 transition-colors"
+                      title="Показать QR-код для телефонов"
+                    >
+                      <QrCode className="w-3 h-3" />
+                      <span>QR</span>
+                    </button>
                   </div>
                 </div>
 
-                {/* Главная кнопка генерации */}
+                {/* 2. Таймер дедлайна пары */}
+                <div className="flex items-center justify-between flex-wrap gap-2 p-2.5 rounded-xl bg-slate-50/70 dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 text-xs">
+                  <div className="flex items-center gap-1.5 text-slate-600 dark:text-slate-300">
+                    <Clock className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" />
+                    <span className="font-medium">Дедлайн урока:</span>
+                    {timeLeft ? (
+                      <span className="font-mono font-bold text-teal-600 dark:text-teal-300 bg-teal-500/10 px-2 py-0.5 rounded border border-teal-500/20">
+                        {timeLeft}
+                      </span>
+                    ) : (
+                      <span className="text-slate-400">не установлен</span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => executeTeacherAction("set_timer", undefined, 15)}
+                      className="px-2 py-1 rounded-lg text-[11px] bg-slate-200/70 dark:bg-white/10 hover:bg-teal-500/20 text-slate-700 dark:text-slate-200 font-medium transition-colors"
+                    >
+                      +15м
+                    </button>
+                    <button
+                      onClick={() => executeTeacherAction("set_timer", undefined, 30)}
+                      className="px-2 py-1 rounded-lg text-[11px] bg-slate-200/70 dark:bg-white/10 hover:bg-teal-500/20 text-slate-700 dark:text-slate-200 font-medium transition-colors"
+                    >
+                      +30м
+                    </button>
+                    <button
+                      onClick={() => executeTeacherAction("set_timer", undefined, 45)}
+                      className="px-2 py-1 rounded-lg text-[11px] bg-slate-200/70 dark:bg-white/10 hover:bg-teal-500/20 text-slate-700 dark:text-slate-200 font-medium transition-colors"
+                    >
+                      +45м
+                    </button>
+                    {deadlineTimestamp && (
+                      <button
+                        onClick={() => executeTeacherAction("set_timer", undefined, null)}
+                        className="px-2 py-1 rounded-lg text-[11px] bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 font-medium transition-colors"
+                      >
+                        Снять
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* 3. Кнопки генерации и сброса */}
                 <div className="flex gap-2">
                   <button
                     onClick={() => executeTeacherAction("generate_all")}
@@ -1013,66 +1364,258 @@ export default function LabDropPage() {
                   <p className="text-xs text-rose-500 font-medium">{teacherError}</p>
                 )}
 
-                {/* Сетка кодов (Режим проектора или обычный список) */}
-                {teacherSession?.tokens && (
-                  <div className="flex flex-col gap-2">
-                    <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
-                      Коды студентов группы 1РУП8 ({Object.keys(teacherSession.tokens).length} чел.):
-                    </div>
+                {/* 4. Вкладки фильтрации студентов и сетка кодов */}
+                {teacherSession?.tokens && (() => {
+                  const tokensList = Object.entries(teacherSession.tokens);
+                  const totalCount = tokensList.length;
+                  const doneCount = tokensList.filter(([_, it]) => it.used).length;
+                  const pendingCount = totalCount - doneCount;
 
-                    <div
-                      className={`grid gap-2 max-h-72 overflow-y-auto pr-1 ${
-                        showProjectorMode ? "grid-cols-2 sm:grid-cols-3" : "grid-cols-1"
-                      }`}
-                    >
-                      {STUDENTS_1RUP8.map((stName) => {
-                        const item = teacherSession.tokens[stName];
-                        if (!item) return null;
+                  const filteredStudents = STUDENTS_1RUP8.filter((stName) => {
+                    const item = teacherSession.tokens[stName];
+                    if (!item) return false;
+                    if (teacherTab === "pending") return !item.used;
+                    if (teacherTab === "done") return item.used;
+                    return true;
+                  });
 
-                        return (
-                          <div
-                            key={stName}
-                            className={`p-2.5 rounded-xl border flex items-center justify-between gap-2 transition-all ${
-                              item.used
-                                ? "bg-emerald-500/5 border-emerald-500/20 text-slate-500 dark:text-slate-400"
-                                : "bg-slate-50/70 dark:bg-white/[0.03] border-slate-200 dark:border-white/10 text-slate-900 dark:text-white"
+                  return (
+                    <div className="flex flex-col gap-2.5">
+                      <div className="flex items-center justify-between flex-wrap gap-2">
+                        {/* Табы */}
+                        <div className="flex items-center gap-1 p-0.5 rounded-xl bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 text-xs">
+                          <button
+                            type="button"
+                            onClick={() => setTeacherTab("all")}
+                            className={`px-2.5 py-1 rounded-lg font-medium transition-all ${
+                              teacherTab === "all"
+                                ? "bg-white dark:bg-white/15 text-slate-900 dark:text-white shadow-sm"
+                                : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
                             }`}
                           >
-                            <div className="overflow-hidden">
-                              <div className="text-xs font-medium truncate">{stName}</div>
-                              <div className="text-[10px] text-slate-400">
-                                {item.used ? `Сдал (${item.used_at})` : "Ожидает"}
-                              </div>
-                            </div>
+                            Все ({totalCount})
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setTeacherTab("pending")}
+                            className={`px-2.5 py-1 rounded-lg font-medium transition-all ${
+                              teacherTab === "pending"
+                                ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 font-semibold"
+                                : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                            }`}
+                          >
+                            Ожидают ({pendingCount})
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setTeacherTab("done")}
+                            className={`px-2.5 py-1 rounded-lg font-medium transition-all ${
+                              teacherTab === "done"
+                                ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-semibold"
+                                : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                            }`}
+                          >
+                            Сдали ({doneCount})
+                          </button>
+                        </div>
+                      </div>
 
-                            <div className="flex items-center gap-1.5 shrink-0">
-                              <span
-                                className={`font-mono text-xs font-bold px-2 py-0.5 rounded ${
+                      {/* Сетка студентов */}
+                      <div
+                        className={`grid gap-2 max-h-72 overflow-y-auto pr-1 ${
+                          showProjectorMode ? "grid-cols-2 sm:grid-cols-3" : "grid-cols-1"
+                        }`}
+                      >
+                        {filteredStudents.length > 0 ? (
+                          filteredStudents.map((stName) => {
+                            const item = teacherSession.tokens[stName];
+                            if (!item) return null;
+
+                            return (
+                              <div
+                                key={stName}
+                                className={`p-2.5 rounded-xl border flex items-center justify-between gap-2 transition-all ${
                                   item.used
-                                    ? "bg-slate-200 dark:bg-white/10 line-through text-slate-400"
-                                    : "bg-teal-500/10 text-teal-700 dark:text-teal-300 border border-teal-500/20"
+                                    ? "bg-emerald-500/5 border-emerald-500/20 text-slate-500 dark:text-slate-400"
+                                    : "bg-slate-50/70 dark:bg-white/[0.03] border-slate-200 dark:border-white/10 text-slate-900 dark:text-white"
                                 }`}
                               >
-                                {item.token}
-                              </span>
+                                <div className="overflow-hidden">
+                                  <div className="text-xs font-medium truncate">{stName}</div>
+                                  <div className="text-[10px] text-slate-400 flex items-center gap-1">
+                                    <span>{item.used ? `Сдал (${item.used_at})` : "Ожидает сдачи"}</span>
+                                    {item.used && item.filename && (
+                                      <button
+                                        type="button"
+                                        onClick={() => handleOpenQuickView(item.filename!)}
+                                        className="inline-flex items-center gap-0.5 text-teal-600 dark:text-teal-400 hover:underline"
+                                        title="Посмотреть сданный файл"
+                                      >
+                                        <Eye className="w-2.5 h-2.5" />
+                                        <span>просмотр</span>
+                                      </button>
+                                    )}
+                                  </div>
+                                </div>
 
-                              {/* Кнопка перевыпуска кода для этого студента */}
-                              <button
-                                onClick={() => executeTeacherAction("regenerate_one", stName)}
-                                className="p-1 rounded hover:bg-slate-200 dark:hover:bg-white/10 text-slate-400 hover:text-teal-600 dark:hover:text-teal-400 transition-colors"
-                                title={`Перевыпустить код для ${stName}`}
-                              >
-                                <RefreshCw className="w-3 h-3" />
-                              </button>
-                            </div>
+                                <div className="flex items-center gap-1.5 shrink-0">
+                                  <span
+                                    className={`font-mono text-xs font-bold px-2 py-0.5 rounded ${
+                                      item.used
+                                        ? "bg-slate-200 dark:bg-white/10 line-through text-slate-400"
+                                        : "bg-teal-500/10 text-teal-700 dark:text-teal-300 border border-teal-500/20"
+                                    }`}
+                                  >
+                                    {item.token}
+                                  </span>
+
+                                  {/* Перевыпуск кода */}
+                                  <button
+                                    onClick={() => executeTeacherAction("regenerate_one", stName)}
+                                    className="p-1 rounded hover:bg-slate-200 dark:hover:bg-white/10 text-slate-400 hover:text-teal-600 dark:hover:text-teal-400 transition-colors"
+                                    title={`Перевыпустить код для ${stName}`}
+                                  >
+                                    <RefreshCw className="w-3 h-3" />
+                                  </button>
+                                </div>
+                              </div>
+                            );
+                          })
+                        ) : (
+                          <div className="py-6 text-center text-xs text-slate-400">
+                            {teacherTab === "pending"
+                              ? "Все студенты успешно сдали работы!"
+                              : teacherTab === "done"
+                              ? "Сданных работ пока нет"
+                              : "Список пуст"}
                           </div>
-                        );
-                      })}
+                        )}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  );
+                })()}
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* 6. МОДАЛЬНОЕ ОКНО БЫСТРОГО ПРОСМОТРА КОДА (QUICKVIEW) */}
+      {showQuickViewModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+          <div className="glass-panel w-full max-w-2xl p-5 flex flex-col gap-3 max-h-[85vh]">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-white/10 pb-3">
+              <div className="flex items-center gap-2 overflow-hidden">
+                <FileText className="w-4 h-4 text-teal-600 dark:text-teal-400 shrink-0" />
+                <span className="font-mono text-xs font-semibold text-slate-900 dark:text-white truncate">
+                  {quickViewFile?.filename || "Просмотр файла"}
+                </span>
+                {quickViewFile?.ext && (
+                  <span className="text-[10px] font-mono uppercase bg-teal-500/10 text-teal-700 dark:text-teal-300 px-1.5 py-0.5 rounded border border-teal-500/20 shrink-0">
+                    {quickViewFile.ext.replace(".", "")}
+                  </span>
+                )}
+                {quickViewFile?.lines !== undefined && (
+                  <span className="text-[11px] text-slate-400 shrink-0">
+                    {quickViewFile.lines} строк
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-1.5">
+                {quickViewFile?.content && (
+                  <button
+                    onClick={async () => {
+                      try {
+                        await navigator.clipboard.writeText(quickViewFile.content);
+                        setPasteToast("Код скопирован в буфер");
+                        setTimeout(() => setPasteToast(null), 2500);
+                      } catch {}
+                    }}
+                    className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-white/10 text-slate-400 hover:text-slate-700 dark:hover:text-white transition-colors"
+                    title="Скопировать содержимое"
+                  >
+                    <Copy className="w-3.5 h-3.5" />
+                  </button>
+                )}
+                <button
+                  onClick={() => setShowQuickViewModal(false)}
+                  className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-white/10 text-slate-400 hover:text-slate-700 dark:hover:text-white transition-colors"
+                  title="Закрыть"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-auto rounded-xl bg-slate-950 text-slate-100 p-3 font-mono text-xs border border-white/10 max-h-[60vh]">
+              {quickViewLoading ? (
+                <div className="flex items-center justify-center py-12 gap-2 text-slate-400">
+                  <RefreshCw className="w-4 h-4 animate-spin text-teal-400" />
+                  <span>Загрузка содержимого...</span>
+                </div>
+              ) : (
+                <pre className="whitespace-pre-wrap leading-relaxed select-text font-mono text-[11px] sm:text-xs text-emerald-300">
+                  {quickViewFile?.content}
+                </pre>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 7. МОДАЛЬНОЕ ОКНО QR-КОДА ДЛЯ СДАЧИ СО СМАРТФОНА */}
+      {showQrModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+          <div className="glass-panel w-full max-w-sm p-6 text-center flex flex-col items-center gap-4">
+            <div className="flex items-center justify-between w-full border-b border-slate-200 dark:border-white/10 pb-3">
+              <div className="flex items-center gap-2">
+                <Smartphone className="w-4 h-4 text-teal-600 dark:text-teal-400" />
+                <h3 className="font-bold text-slate-900 dark:text-white text-sm">
+                  Сдача со смартфона
+                </h3>
+              </div>
+              <button
+                onClick={() => setShowQrModal(false)}
+                className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-white/10 text-slate-400 hover:text-slate-700 dark:hover:text-white"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {qrDataUrl ? (
+              <div className="p-3 bg-white rounded-2xl shadow-md border border-slate-200">
+                <img
+                  src={qrDataUrl}
+                  alt="QR-код страницы"
+                  width={240}
+                  height={240}
+                  className="w-56 h-56 object-contain"
+                />
+              </div>
+            ) : (
+              <div className="w-56 h-56 flex items-center justify-center text-xs text-slate-400">
+                Генерация QR-кода...
+              </div>
+            )}
+
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Наведите камеру смартфона, чтобы открыть сервис и отправить файлы или фото тетради напрямую без проводов и мессенджеров.
+            </p>
+
+            <button
+              onClick={async () => {
+                try {
+                  const url = window.location.href.split("?")[0];
+                  await navigator.clipboard.writeText(url);
+                  setPasteToast("Ссылка скопирована в буфер");
+                  setTimeout(() => setPasteToast(null), 2500);
+                } catch {}
+              }}
+              className="btn-cta w-full py-2 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5"
+            >
+              <Copy className="w-3.5 h-3.5" />
+              <span>Скопировать прямую ссылку</span>
+            </button>
           </div>
         </div>
       )}

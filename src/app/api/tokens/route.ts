@@ -4,19 +4,30 @@ import {
   generateAllTokens,
   regenerateSingleToken,
   toggleSessionLock,
+  setSessionTimer,
   resetTokensSession,
   TEACHER_DEFAULT_PIN,
+  TEACHER_DEFAULT_LOGIN,
+  TEACHER_DEFAULT_PASSWORD,
 } from "../../../lib/tokens";
 
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const pin = searchParams.get("pin");
+    const login = searchParams.get("login");
+    const password = searchParams.get("password");
 
     const state = getTokensState();
 
-    // Если преподаватель ввел правильный мастер-пин — отдаем полные данные с кодами
-    if (pin === TEACHER_DEFAULT_PIN) {
+    const isAuthed =
+      pin === TEACHER_DEFAULT_PIN ||
+      (login &&
+        (login.toLowerCase() === TEACHER_DEFAULT_LOGIN || login.toLowerCase() === "admin") &&
+        password === TEACHER_DEFAULT_PASSWORD);
+
+    // Если преподаватель ввел правильные реквизиты — отдаем полные данные с кодами
+    if (isAuthed) {
       return NextResponse.json({
         status: "ok",
         authenticated: true,
@@ -30,6 +41,7 @@ export async function GET(req: NextRequest) {
       authenticated: false,
       is_active: state.is_active,
       is_locked: state.is_locked,
+      deadline_timestamp: state.deadline_timestamp || null,
     });
   } catch (error) {
     console.error("GET /api/tokens error:", error);
@@ -40,16 +52,27 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { pin, action, student } = body;
+    const { login, password, pin, action, student } = body;
 
-    if (pin !== TEACHER_DEFAULT_PIN) {
+    const isLoginValid =
+      !login ||
+      login.trim().toLowerCase() === TEACHER_DEFAULT_LOGIN ||
+      login.trim().toLowerCase() === "admin" ||
+      login.trim().toLowerCase() === "преподаватель";
+
+    const isPassValid =
+      password === TEACHER_DEFAULT_PASSWORD ||
+      pin === TEACHER_DEFAULT_PIN ||
+      password === TEACHER_DEFAULT_PIN;
+
+    if (!isLoginValid || !isPassValid) {
       return NextResponse.json(
-        { status: "error", message: "Неверный PIN преподавателя" },
+        { status: "error", message: "Неверный логин или пароль преподавателя" },
         { status: 403 }
       );
     }
 
-    if (action === "verify_pin") {
+    if (action === "verify_pin" || action === "login") {
       const state = getTokensState();
       return NextResponse.json({
         status: "ok",
@@ -88,6 +111,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({
         status: "ok",
         message: updatedState.is_locked ? "Прием заблокирован" : "Прием разблокирован",
+        session: updatedState,
+      });
+    }
+
+    if (action === "set_timer") {
+      const minutes = body.minutes !== undefined ? Number(body.minutes) : null;
+      const updatedState = setSessionTimer(minutes);
+      return NextResponse.json({
+        status: "ok",
+        message: minutes ? `Таймер установлен на ${minutes} мин.` : "Таймер отменен",
         session: updatedState,
       });
     }

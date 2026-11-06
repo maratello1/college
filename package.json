@@ -18,10 +18,12 @@
   },
   "homepage": "https://github.com/maratello1/college#readme",
   "dependencies": {
+    "@types/qrcode": "^1.5.6",
     "clsx": "^2.1.1",
     "localtunnel": "^2.0.2",
     "lucide-react": "^1.69.0",
     "next": "^15.1.7",
+    "qrcode": "^1.5.4",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "tailwind-merge": "^3.7.0"
