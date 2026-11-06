@@ -7,6 +7,7 @@ import {
   MAX_FILE_SIZE_BYTES,
 } from "../../../lib/constants";
 import { appendSubmissionToCsv, UPLOADS_DIR } from "../../../lib/csv";
+import { verifyAndConsumeToken } from "../../../lib/tokens";
 
 export async function POST(req: NextRequest) {
   try {
@@ -118,12 +119,22 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 7. Сохранение файла на диск
+    // 7. Проверка одноразового токена (если сессия токенов активна)
+    const tokenRaw = String(formData.get("token") || "").trim();
+    const tokenRes = verifyAndConsumeToken(studentRaw, tokenRaw, `Работа №${taskNum}`, finalFilename);
+    if (!tokenRes.valid) {
+      return NextResponse.json(
+        { status: "error", message: tokenRes.error || "Ошибка проверки кода" },
+        { status: 400 }
+      );
+    }
+
+    // 8. Сохранение файла на диск
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
     await fs.promises.writeFile(targetPath, buffer);
 
-    // 8. Запись в CSV журнал
+    // 9. Запись в CSV журнал
     const now = new Date();
     const timeShort = now.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
     const dtStr = `${now.toLocaleDateString("ru-RU")} ${now.toLocaleTimeString("ru-RU")}`;

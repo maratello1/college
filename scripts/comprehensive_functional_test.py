@@ -8,6 +8,7 @@ from playwright.sync_api import sync_playwright
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
 BASE_URL = "http://localhost:8080"
+TEACHER_PIN = "1rup8"
 passed = 0
 failed = 0
 
@@ -23,6 +24,17 @@ def test(name, condition, details=""):
 print("====================================================================")
 print("  🚀 FULL FUNCTIONAL TEST SUITE — LABDROP (NEXT.JS 15 + REACT 19)")
 print("====================================================================")
+
+# Reset tokens to free mode for baseline testing
+def reset_tokens():
+    req = urllib.request.Request(
+        f"{BASE_URL}/api/tokens",
+        data=json.dumps({"pin": TEACHER_PIN, "action": "reset"}).encode("utf-8"),
+        headers={"Content-Type": "application/json"}
+    )
+    urllib.request.urlopen(req, timeout=5)
+
+reset_tokens()
 
 # 1. API & Endpoints
 print("\n📡 1. Testing Endpoints & Static Assets...")
@@ -61,8 +73,8 @@ try:
 except Exception as e:
     test("GET /api/download-log (Excel UTF-8 BOM)", False, str(e))
 
-# 2. Upload API Validation & Handlers
-print("\n🛡️ 2. Testing Upload API & Validations...")
+# 2. Upload API Validation & Handlers (Free mode)
+print("\n🛡️ 2. Testing Upload API & Validations (Free Mode)...")
 
 def post_multipart(fields, files):
     boundary = "----WebKitFormBoundary7MA4YWxkTrZu0gW"

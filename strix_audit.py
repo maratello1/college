@@ -40,6 +40,14 @@ def run_strix_audit():
     print(f"  ⏱️  Timestamp: {time.strftime('%Y-%m-%d %H:%M:%S')}")
     print("=" * 68 + "\n")
 
+    # Ensure clean token state for audit isolation
+    tokens_path = os.path.join(BASE_DIR, "tokens.json")
+    if os.path.exists(tokens_path):
+        try:
+            os.remove(tokens_path)
+        except Exception:
+            pass
+
     next_bin = os.path.join(BASE_DIR, "node_modules", "next", "dist", "bin", "next")
     proc = subprocess.Popen(
         ["node", next_bin, "start", "-p", str(PORT)],

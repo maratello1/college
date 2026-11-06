@@ -17,6 +17,11 @@ import {
   FileText,
   ChevronDown,
   ChevronUp,
+  KeyRound,
+  Lock,
+  Unlock,
+  Monitor,
+  Check,
 } from "lucide-react";
 import {
   STUDENTS_1RUP8,
@@ -40,16 +45,46 @@ interface StatsData {
   percent: number;
 }
 
+interface TokenItem {
+  token: string;
+  used: boolean;
+  used_at: string | null;
+  task?: string | null;
+  filename?: string | null;
+}
+
+interface TokensSession {
+  is_active: boolean;
+  is_locked: boolean;
+  created_at: string | null;
+  tokens: Record<string, TokenItem>;
+}
+
 export default function LabDropPage() {
   const [theme, setTheme] = useState<"dark" | "light">("dark");
 
   const [student, setStudent] = useState<string>("");
   const [task, setTask] = useState<string>("");
+  const [token, setToken] = useState<string>("");
   const [file, setFile] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState<boolean>(false);
   const [validationError, setValidationError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
+  // Статус активности токенов (от сервера)
+  const [tokensActive, setTokensActive] = useState<boolean>(false);
+  const [tokensLocked, setTokensLocked] = useState<boolean>(false);
+
+  // Модалка преподавателя
+  const [showTeacherModal, setShowTeacherModal] = useState<boolean>(false);
+  const [teacherPin, setTeacherPin] = useState<string>("");
+  const [isTeacherAuthed, setIsTeacherAuthed] = useState<boolean>(false);
+  const [teacherSession, setTeacherSession] = useState<TokensSession | null>(null);
+  const [teacherError, setTeacherError] = useState<string | null>(null);
+  const [teacherSuccess, setTeacherSuccess] = useState<string | null>(null);
+  const [showProjectorMode, setShowProjectorMode] = useState<boolean>(false);
+
+  // Экран успешной сдачи
   const [submittedData, setSubmittedData] = useState<{
     student: string;
     task: string;
@@ -59,6 +94,7 @@ export default function LabDropPage() {
   } | null>(null);
   const [copyFeedback, setCopyFeedback] = useState<string>("Копировать");
 
+  // Данные дашборда и журнала
   const [submissions, setSubmissions] = useState<SubmissionItem[]>([]);
   const [stats, setStats] = useState<StatsData>({
     total_submissions: 0,
@@ -89,13 +125,15 @@ export default function LabDropPage() {
     localStorage.setItem("labdrop_theme", nextTheme);
   };
 
+  // Загрузка статистики, журнала и статуса токенов
   useEffect(() => {
     let isMounted = true;
     const load = async () => {
       try {
-        const [statsRes, subsRes] = await Promise.all([
+        const [statsRes, subsRes, tokensRes] = await Promise.all([
           fetch("/api/stats"),
           fetch("/api/submissions"),
+          fetch("/api/tokens"),
         ]);
         if (!isMounted) return;
 
@@ -117,13 +155,21 @@ export default function LabDropPage() {
             setSubmissions(subsJson.submissions || []);
           }
         }
+
+        if (tokensRes.ok) {
+          const tokensJson = await tokensRes.json();
+          if (tokensJson.status === "ok") {
+            setTokensActive(Boolean(tokensJson.is_active));
+            setTokensLocked(Boolean(tokensJson.is_locked));
+          }
+        }
       } catch (err) {
         console.warn("Ошибка загрузки данных:", err);
       }
     };
 
     load();
-    const interval = setInterval(load, 20000);
+    const interval = setInterval(load, 15000);
     return () => {
       isMounted = false;
       clearInterval(interval);
@@ -133,9 +179,10 @@ export default function LabDropPage() {
   const handleRefresh = async () => {
     setIsRefreshing(true);
     try {
-      const [statsRes, subsRes] = await Promise.all([
+      const [statsRes, subsRes, tokensRes] = await Promise.all([
         fetch("/api/stats"),
         fetch("/api/submissions"),
+        fetch("/api/tokens"),
       ]);
       if (statsRes.ok) {
         const statsJson = await statsRes.json();
@@ -154,6 +201,13 @@ export default function LabDropPage() {
           setSubmissions(subsJson.submissions || []);
         }
       }
+      if (tokensRes.ok) {
+        const tokensJson = await tokensRes.json();
+        if (tokensJson.status === "ok") {
+          setTokensActive(Boolean(tokensJson.is_active));
+          setTokensLocked(Boolean(tokensJson.is_locked));
+        }
+      }
     } catch (e) {
       console.warn("Refresh error:", e);
     } finally {
@@ -161,6 +215,7 @@ export default function LabDropPage() {
     }
   };
 
+  // Валидация файла
   const validateFile = (selectedFile: File): boolean => {
     setValidationError(null);
 
@@ -229,9 +284,15 @@ export default function LabDropPage() {
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
+  // Отправка формы сдачи
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!student || !task || !file || isSubmitting) return;
+
+    if (tokensActive && !token.trim()) {
+      setValidationError("Введите одноразовый код от преподавателя");
+      return;
+    }
 
     if (!validateFile(file)) return;
 
@@ -241,6 +302,9 @@ export default function LabDropPage() {
     formData.append("student", student);
     formData.append("task", task);
     formData.append("file", file);
+    if (tokensActive) {
+      formData.append("token", token.trim());
+    }
 
     try {
       const res = await fetch("/api/upload", {
@@ -258,6 +322,7 @@ export default function LabDropPage() {
           time: data.time || new Date().toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" }),
           size_kb: `${data.size_kb} КБ`,
         });
+        setToken("");
         handleRefresh();
       } else {
         setValidationError(data.message || "Ошибка при сохранении файла");
@@ -273,6 +338,7 @@ export default function LabDropPage() {
     setSubmittedData(null);
     setFile(null);
     setTask("");
+    setToken("");
     setValidationError(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
@@ -285,6 +351,75 @@ export default function LabDropPage() {
       setTimeout(() => setCopyFeedback("Копировать"), 2000);
     } catch {
       setCopyFeedback("Ошибка");
+    }
+  };
+
+  // ==========================================
+  // ЛОГИКА ПАНЕЛИ ПРЕПОДАВАТЕЛЯ (УПРАВЛЕНИЕ ТОКЕНАМИ)
+  // ==========================================
+  const handleTeacherAuth = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setTeacherError(null);
+    try {
+      const res = await fetch("/api/tokens", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pin: teacherPin.trim(), action: "verify_pin" }),
+      });
+      const data = await res.json();
+      if (res.ok && data.status === "ok") {
+        setIsTeacherAuthed(true);
+        setTeacherSession(data.session);
+        setTokensActive(Boolean(data.session?.is_active));
+        setTokensLocked(Boolean(data.session?.is_locked));
+      } else {
+        setTeacherError(data.message || "Неверный пароль");
+      }
+    } catch {
+      setTeacherError("Ошибка связи с сервером");
+    }
+  };
+
+  const executeTeacherAction = async (action: string, targetStudent?: string) => {
+    setTeacherError(null);
+    setTeacherSuccess(null);
+    try {
+      const res = await fetch("/api/tokens", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          pin: teacherPin.trim(),
+          action,
+          student: targetStudent,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.status === "ok") {
+        setTeacherSession(data.session);
+        setTokensActive(Boolean(data.session?.is_active));
+        setTokensLocked(Boolean(data.session?.is_locked));
+        setTeacherSuccess(data.message);
+        setTimeout(() => setTeacherSuccess(null), 3000);
+      } else {
+        setTeacherError(data.message || "Ошибка выполнения");
+      }
+    } catch {
+      setTeacherError("Ошибка связи с сервером");
+    }
+  };
+
+  const copyTokensToClipboard = async () => {
+    if (!teacherSession?.tokens) return;
+    const lines = ["Коды для сдачи работ (Группа 1РУП8):"];
+    for (const [st, item] of Object.entries(teacherSession.tokens)) {
+      lines.push(`${st}: ${item.token} ${item.used ? "(Сдано)" : ""}`);
+    }
+    try {
+      await navigator.clipboard.writeText(lines.join("\n"));
+      setTeacherSuccess("Список кодов скопирован в буфер обмена");
+      setTimeout(() => setTeacherSuccess(null), 3000);
+    } catch {
+      setTeacherError("Не удалось скопировать");
     }
   };
 
@@ -306,7 +441,9 @@ export default function LabDropPage() {
     );
   });
 
-  const isFormValid = Boolean(student && task && file && !validationError);
+  const isFormValid = Boolean(
+    student && task && file && (!tokensActive || token.trim().length >= 4) && !validationError
+  );
 
   return (
     <main className="max-w-xl mx-auto px-4 py-8 sm:py-12 flex flex-col gap-5">
@@ -319,6 +456,18 @@ export default function LabDropPage() {
           <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-white/10">
             1РУП8
           </span>
+          {tokensActive && (
+            <span
+              className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border flex items-center gap-1 ${
+                tokensLocked
+                  ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/25"
+                  : "bg-teal-500/10 text-teal-600 dark:text-teal-400 border-teal-500/25"
+              }`}
+            >
+              <KeyRound className="w-2.5 h-2.5" />
+              {tokensLocked ? "Прием закрыт" : "По токенам"}
+            </span>
+          )}
         </div>
 
         <div className="flex items-center gap-2">
@@ -427,6 +576,29 @@ export default function LabDropPage() {
               </div>
             </div>
 
+            {/* Поле одноразового кода (если активировано преподавателем) */}
+            {tokensActive && (
+              <div className="flex flex-col gap-1">
+                <div className="flex items-center justify-between">
+                  <label htmlFor="tokenInput" className="text-xs font-medium text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                    <KeyRound className="w-3 h-3 text-teal-600 dark:text-teal-400" />
+                    <span>Одноразовый код (от преподавателя)</span> <span className="text-rose-500">*</span>
+                  </label>
+                  <span className="text-[10px] text-slate-400">4 цифры</span>
+                </div>
+                <input
+                  id="tokenInput"
+                  type="text"
+                  maxLength={6}
+                  value={token}
+                  onChange={(e) => setToken(e.target.value.replace(/\s+/g, ""))}
+                  placeholder="Например, 4819"
+                  className="glass-input w-full h-10 px-3 text-xs sm:text-sm font-mono tracking-widest text-center"
+                  required
+                />
+              </div>
+            )}
+
             {/* Зона загрузки файла */}
             <div className="flex flex-col gap-1">
               <label className="text-xs font-medium text-slate-700 dark:text-slate-300">
@@ -521,9 +693,9 @@ export default function LabDropPage() {
             {/* Кнопка отправки */}
             <button
               type="submit"
-              disabled={!isFormValid || isSubmitting}
+              disabled={!isFormValid || isSubmitting || tokensLocked}
               className={`w-full py-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-all ${
-                isFormValid && !isSubmitting
+                isFormValid && !isSubmitting && !tokensLocked
                   ? "btn-cta cursor-pointer"
                   : "bg-slate-200 dark:bg-white/5 text-slate-400 dark:text-slate-500 border border-slate-300/50 dark:border-white/5 cursor-not-allowed"
               }`}
@@ -532,6 +704,11 @@ export default function LabDropPage() {
                 <>
                   <RefreshCw className="w-4 h-4 animate-spin" />
                   <span>Отправка...</span>
+                </>
+              ) : tokensLocked ? (
+                <>
+                  <Lock className="w-4 h-4" />
+                  <span>Прием закрыт преподавателем</span>
                 </>
               ) : (
                 <>
@@ -602,7 +779,7 @@ export default function LabDropPage() {
         </section>
       )}
 
-      {/* 4. МИНИМАЛИСТИЧНАЯ СТРОКА ЖУРНАЛА */}
+      {/* 4. МИНИМАЛИСТИЧНАЯ СТРОКА ЖУРНАЛА И КНОПКА ТОКЕНОВ */}
       <section className="glass-panel p-3.5 sm:p-4 flex flex-col gap-2.5">
         <div className="flex items-center justify-between gap-2 text-xs">
           <div className="flex items-center gap-1.5 text-slate-600 dark:text-slate-300">
@@ -617,7 +794,7 @@ export default function LabDropPage() {
               className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-white/10 transition-colors"
             >
               <span>{showMonitor ? "Скрыть" : "Список"}</span>
-              {showMonitor ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+              {showMonitor ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
             </button>
 
             <a
@@ -628,10 +805,20 @@ export default function LabDropPage() {
               <FileSpreadsheet className="w-3 h-3" />
               <span>CSV</span>
             </a>
+
+            {/* Кнопка входа в панель токенов преподавателя */}
+            <button
+              onClick={() => setShowTeacherModal(true)}
+              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-100 dark:bg-white/5 hover:bg-teal-500/10 text-slate-700 dark:text-slate-300 hover:text-teal-600 dark:hover:text-teal-400 border border-slate-200 dark:border-white/10 transition-colors"
+              title="Панель преподавателя (Токены)"
+            >
+              <KeyRound className="w-3 h-3 text-teal-600 dark:text-teal-400" />
+              <span>Коды</span>
+            </button>
           </div>
         </div>
 
-        {/* Раскрывающийся список */}
+        {/* Раскрывающийся список сданных работ */}
         {showMonitor && (
           <div className="pt-2.5 border-t border-slate-200/80 dark:border-white/5 flex flex-col gap-2">
             <div className="relative">
@@ -686,6 +873,192 @@ export default function LabDropPage() {
           </div>
         )}
       </section>
+
+      {/* 5. МОДАЛЬНОЕ ОКНО ПРЕПОДАВАТЕЛЯ (УПРАВЛЕНИЕ ТОКЕНАМИ) */}
+      {showTeacherModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="glass-panel w-full max-w-lg p-5 sm:p-6 flex flex-col gap-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-white/10 pb-3">
+              <div className="flex items-center gap-2">
+                <KeyRound className="w-4 h-4 text-teal-600 dark:text-teal-400" />
+                <h3 className="font-bold text-slate-900 dark:text-white text-base">
+                  Управление токенами сдачи
+                </h3>
+              </div>
+              <button
+                onClick={() => setShowTeacherModal(false)}
+                className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-white/10 text-slate-400 hover:text-slate-700 dark:hover:text-white"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Авторизация по PIN преподавателя */}
+            {!isTeacherAuthed ? (
+              <form onSubmit={handleTeacherAuth} className="flex flex-col gap-3 py-2">
+                <p className="text-xs text-slate-600 dark:text-slate-300">
+                  Введите пароль преподавателя для доступа к генерации и просмотру кодов:
+                </p>
+                <div className="flex gap-2">
+                  <input
+                    type="password"
+                    value={teacherPin}
+                    onChange={(e) => setTeacherPin(e.target.value)}
+                    placeholder="PIN преподавателя (1rup8)"
+                    className="glass-input flex-1 h-10 px-3 text-sm outline-none"
+                    autoFocus
+                  />
+                  <button type="submit" className="btn-cta px-4 rounded-xl text-xs font-semibold">
+                    Войти
+                  </button>
+                </div>
+                {teacherError && (
+                  <p className="text-xs text-rose-500">{teacherError}</p>
+                )}
+              </form>
+            ) : (
+              /* Панель управления после авторизации */
+              <div className="flex flex-col gap-4">
+                {/* Статус сессии и кнопки управления */}
+                <div className="flex items-center justify-between flex-wrap gap-2 text-xs">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-slate-500 dark:text-slate-400">Статус:</span>
+                    <span
+                      className={`font-semibold px-2 py-0.5 rounded-full ${
+                        teacherSession?.is_active
+                          ? teacherSession?.is_locked
+                            ? "bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                            : "bg-teal-500/10 text-teal-700 dark:text-teal-300"
+                          : "bg-slate-100 dark:bg-white/10 text-slate-500"
+                      }`}
+                    >
+                      {!teacherSession?.is_active
+                        ? "Не активна (свободный режим)"
+                        : teacherSession?.is_locked
+                        ? "Заблокирована (прием закрыт)"
+                        : "Активна"}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      onClick={() => executeTeacherAction("toggle_lock")}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/15 text-slate-700 dark:text-slate-300 transition-colors"
+                      title={teacherSession?.is_locked ? "Открыть прием" : "Закрыть прием"}
+                    >
+                      {teacherSession?.is_locked ? <Unlock className="w-3 h-3 text-emerald-500" /> : <Lock className="w-3 h-3 text-amber-500" />}
+                      <span>{teacherSession?.is_locked ? "Открыть" : "Закрыть"}</span>
+                    </button>
+
+                    <button
+                      onClick={copyTokensToClipboard}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/15 text-slate-700 dark:text-slate-300 transition-colors"
+                      title="Скопировать список в буфер"
+                    >
+                      <Copy className="w-3 h-3" />
+                      <span>Скопировать</span>
+                    </button>
+
+                    <button
+                      onClick={() => setShowProjectorMode(!showProjectorMode)}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium bg-teal-500/10 text-teal-700 dark:text-teal-300 hover:bg-teal-500/20 transition-colors"
+                      title="Режим проектора на экран кабинета"
+                    >
+                      <Monitor className="w-3 h-3" />
+                      <span>Проектор</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Главная кнопка генерации */}
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => executeTeacherAction("generate_all")}
+                    className="btn-cta flex-1 py-2.5 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5" />
+                    <span>Сгенерировать новые коды на пару</span>
+                  </button>
+
+                  <button
+                    onClick={() => executeTeacherAction("reset")}
+                    className="px-3 py-2.5 rounded-xl bg-slate-100 dark:bg-white/5 hover:bg-rose-500/10 text-slate-600 dark:text-slate-400 hover:text-rose-500 border border-slate-200 dark:border-white/10 text-xs font-medium transition-colors"
+                    title="Сбросить в свободный режим без кодов"
+                  >
+                    Сброс
+                  </button>
+                </div>
+
+                {teacherSuccess && (
+                  <p className="text-xs text-teal-600 dark:text-teal-400 font-medium">{teacherSuccess}</p>
+                )}
+                {teacherError && (
+                  <p className="text-xs text-rose-500 font-medium">{teacherError}</p>
+                )}
+
+                {/* Сетка кодов (Режим проектора или обычный список) */}
+                {teacherSession?.tokens && (
+                  <div className="flex flex-col gap-2">
+                    <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                      Коды студентов группы 1РУП8 ({Object.keys(teacherSession.tokens).length} чел.):
+                    </div>
+
+                    <div
+                      className={`grid gap-2 max-h-72 overflow-y-auto pr-1 ${
+                        showProjectorMode ? "grid-cols-2 sm:grid-cols-3" : "grid-cols-1"
+                      }`}
+                    >
+                      {STUDENTS_1RUP8.map((stName) => {
+                        const item = teacherSession.tokens[stName];
+                        if (!item) return null;
+
+                        return (
+                          <div
+                            key={stName}
+                            className={`p-2.5 rounded-xl border flex items-center justify-between gap-2 transition-all ${
+                              item.used
+                                ? "bg-emerald-500/5 border-emerald-500/20 text-slate-500 dark:text-slate-400"
+                                : "bg-slate-50/70 dark:bg-white/[0.03] border-slate-200 dark:border-white/10 text-slate-900 dark:text-white"
+                            }`}
+                          >
+                            <div className="overflow-hidden">
+                              <div className="text-xs font-medium truncate">{stName}</div>
+                              <div className="text-[10px] text-slate-400">
+                                {item.used ? `Сдал (${item.used_at})` : "Ожидает"}
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              <span
+                                className={`font-mono text-xs font-bold px-2 py-0.5 rounded ${
+                                  item.used
+                                    ? "bg-slate-200 dark:bg-white/10 line-through text-slate-400"
+                                    : "bg-teal-500/10 text-teal-700 dark:text-teal-300 border border-teal-500/20"
+                                }`}
+                              >
+                                {item.token}
+                              </span>
+
+                              {/* Кнопка перевыпуска кода для этого студента */}
+                              <button
+                                onClick={() => executeTeacherAction("regenerate_one", stName)}
+                                className="p-1 rounded hover:bg-slate-200 dark:hover:bg-white/10 text-slate-400 hover:text-teal-600 dark:hover:text-teal-400 transition-colors"
+                                title={`Перевыпустить код для ${stName}`}
+                              >
+                                <RefreshCw className="w-3 h-3" />
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </main>
   );
 }
